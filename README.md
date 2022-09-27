@@ -1,2 +1,1 @@
-# portfolio-snake-game-hardhat
-Portfolio project: Snake Game Dapp - Hardhat backend
+# Portfolio project: Snake Game Dapp - Hardhat backend
