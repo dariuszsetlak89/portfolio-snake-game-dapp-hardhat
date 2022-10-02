@@ -33,4 +33,5 @@ lint/tmp/
 
 gas-report.txt
 
-.temp
+.temp/
+images/
