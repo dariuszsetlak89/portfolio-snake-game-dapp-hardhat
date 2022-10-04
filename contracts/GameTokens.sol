@@ -3,8 +3,8 @@ pragma solidity ^0.8.17;
 
 /* Imports */
 import "./SnakeGame.sol";
-import "./tokens/SnakeToken.sol";
-import "./tokens/FruitToken.sol";
+import "./tokens/Token.sol";
+import "hardhat/console.sol";
 
 /* Errors */
 error GameTokens__SnakeTokenBalanceTooLow(uint256 requiredSnakeBalance);
@@ -23,6 +23,12 @@ error GameTokens__TokenSwap_FruitTransferFailed(
 error GameTokens__NotEnoughEthSent(uint256 ethSent, uint256 ethRequied);
 
 contract GameTokens is SnakeGame {
+    /* Structs */
+    struct TokenData {
+        string name;
+        string symbol;
+    }
+
     /* Events */
     event SnakeTokensClaimed(address indexed player);
     event SnakeTokensBought(address indexed player, uint256 snakeAmount);
@@ -37,8 +43,10 @@ contract GameTokens is SnakeGame {
     /* Mappings */
 
     /* Variables */
-    SnakeToken public s_snakeToken;
-    FruitToken public s_fruitToken;
+    Token public s_snakeToken;
+    TokenData public s_snakeData;
+    Token public s_fruitToken;
+    TokenData public s_fruitData;
     uint8 private constant SNAKE_TOKEN_AIRDROP = 5;
     uint8 private constant SNAKE_GAME_FEE = 1;
     uint8 private constant FRUIT_SNAKE_RATE = 10; // 10 FRUIT => 1 SNAKE
@@ -46,10 +54,17 @@ contract GameTokens is SnakeGame {
 
     /* Modifiers */
 
-    /* Constructor */
-    constructor() {
-        s_snakeToken = new SnakeToken();
-        s_fruitToken = new FruitToken();
+    ////////////////////
+    //  Constructor   //
+    ////////////////////
+
+    constructor(TokenData memory snakeTokenData, TokenData memory fruitTokenData) {
+        s_snakeData = snakeTokenData;
+        s_fruitData = fruitTokenData;
+
+        // Deploy tokens' contracts
+        s_snakeToken = new Token(s_snakeData.name, s_snakeData.symbol);
+        s_fruitToken = new Token(s_snakeData.name, s_snakeData.symbol);
     }
 
     ////////////////////
@@ -101,12 +116,12 @@ contract GameTokens is SnakeGame {
     // Function: Claim FruitTokens earned in the game
     function fruitTokenClaim() external nonReentrant isPlayer {
         // Check if player has FRUIT to claim
-        if (s_players[s_player].fruitTokensToClaim < 1) {
+        if (s_players[s_player].numberOfFruitToClaim < 1) {
             revert GameTokens__NoFruitTokensToClaim(s_player);
         }
         // Mint FRUIT tokens for player account
-        s_fruitToken.mint(s_player, s_players[s_player].fruitTokensToClaim);
-        s_players[s_player].fruitTokensToClaim = 0;
+        s_fruitToken.mint(s_player, s_players[s_player].numberOfFruitToClaim);
+        s_players[s_player].numberOfFruitToClaim = 0;
         emit FruitTokensClaimed(s_player);
     }
 

@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 /* Imports */
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 /* Errors */
 error SnakeGame__NoGamesFunded(address player);
@@ -17,16 +18,16 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         bool snakeAirdropCollected;
         bool gameStartedFlag;
         uint8 numberOfPaidGames;
-        uint256 fruitTokensToClaim;
-        uint8 nftAwardsToClaim;
-        bool superPetNftAwardFlag;
+        uint256 numberOfFruitToClaim;
+        uint8 numberOfSnakeNftsToClaim;
+        bool superNftAwardFlag;
     }
 
     struct PlayerStats {
         uint8 numberOfGamesPlayed;
         uint256 fruitTokensCollected;
         uint8 nftAwardsCollected;
-        bool superPetNftAwardCollected;
+        bool superNftAwardCollected;
         uint256 lastScore;
         uint256 bestScore;
     }
@@ -43,7 +44,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /* State Variables */
     address internal s_player;
     uint8 internal constant MIN_SCORE_TO_CLAIM_NFT = 50; // require score 50 to unlock NftAward
-    uint8 internal constant MAX_NUMBER_NFT_AWARDS = 5; // maximum number of NftAwards to claim
+    uint8 internal constant NFT_OWN_TO_CLAIM_SUPER_NFT = 5; // maximum number of NftAwards to claim
 
     /* Modifiers */
     modifier isPlayer() {
@@ -51,6 +52,10 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         s_player = msg.sender;
         _;
     }
+
+    ////////////////////
+    //  Constructor   //
+    ////////////////////
 
     /* Constructor */
     constructor() {}
@@ -77,13 +82,10 @@ contract SnakeGame is Ownable, ReentrancyGuard {
             revert SnakeGame__PlayerDidNotPlayGame(s_player);
         }
         s_players[s_player].gameStartedFlag = false;
-        s_players[s_player].fruitTokensToClaim += _score;
+        s_players[s_player].numberOfFruitToClaim += _score;
         // Set SnakeNft claim
-        if (
-            _score >= MIN_SCORE_TO_CLAIM_NFT &&
-            s_players[s_player].nftAwardsToClaim <= MAX_NUMBER_NFT_AWARDS
-        ) {
-            s_players[s_player].nftAwardsToClaim++;
+        if (_score >= MIN_SCORE_TO_CLAIM_NFT) {
+            s_players[s_player].numberOfSnakeNftsToClaim++;
             emit SnakeNftUnlocked(s_player);
         }
         s_stats[s_player].numberOfGamesPlayed += 1;
@@ -132,7 +134,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     }
 
     function getMaxNumberNftAwards() external pure returns (uint8) {
-        return MAX_NUMBER_NFT_AWARDS;
+        return NFT_OWN_TO_CLAIM_SUPER_NFT;
     }
 
     function getSnakeGameEthBalance() external view returns (uint256) {
