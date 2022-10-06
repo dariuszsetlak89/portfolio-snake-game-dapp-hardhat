@@ -1,5 +1,3 @@
-/** @type import('hardhat/config').HardhatUserConfig */
-
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
@@ -18,39 +16,39 @@ module.exports = {
     defaultNetwork: "hardhat",
     networks: {
         localhost: {
-            chainId: 31337
+            chainId: 31337,
         },
         hardhat: {
             chainId: 31337,
-            blockConfirmations: 1
+            blockConfirmations: 1,
         },
         goerli: {
             chainId: 5,
             url: GOERLI_RPC_URL,
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
-            blockConfirmations: 6
-        }
+            blockConfirmations: 6,
+        },
     },
     etherscan: {
-        apiKey: "ETHERSCAN_API_KEY"
+        apiKey: "ETHERSCAN_API_KEY",
     },
     gasReporter: {
         enabled: process.env.REPORT_GAS ? true : false,
         outputFile: "gas-report.txt",
         currency: "USD",
         noColors: true,
-        token: "ETH" // ETH (default), BNB, MATIC, AVAX
+        token: "ETH", // ETH (default), BNB, MATIC, AVAX
         // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     },
     namedAccounts: {
         deployer: {
-            default: 0
+            default: 0,
         },
         player: {
-            default: 1
-        }
+            default: 1,
+        },
     },
     mocha: {
-        timeout: 200000 // 200 seconds max
-    }
+        timeout: 200000, // 200 seconds max
+    },
 };
