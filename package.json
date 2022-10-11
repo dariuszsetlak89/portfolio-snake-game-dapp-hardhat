@@ -25,5 +25,6 @@
         "prettier": "^2.7.1",
         "prettier-plugin-solidity": "^1.0.0-beta.24",
         "solidity-coverage": "^0.8.2"
-    }
+    },
+    "dependencies": {}
 }

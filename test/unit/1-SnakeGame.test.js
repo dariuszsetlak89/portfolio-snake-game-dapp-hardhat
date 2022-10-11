@@ -1,43 +1,60 @@
-const { assert, expect } = require("chai");
+// const hre = require("hardhat");
+// const { network, deployments, ethers, getNamedAccounts } = hre;
 const { network, deployments, ethers, getNamedAccounts } = require("hardhat");
+const { assert, expect } = require("chai");
 const { developmentChains } = require("../../helper-hardhat-config");
 
 !developmentChains.includes(network.name)
     ? describe.skip
     : describe("SnakeGame Unit Tests", function () {
           beforeEach(async () => {
+              // Deploy smart contracts
+              await deployments.fixture(["SnakeGame", "GameTokens"]);
+              // Get accounts: deployer, player
               deployer = (await getNamedAccounts()).deployer;
-              player = (await getNamedAccounts()).player;
-              await deployments.fixture(["snakegame"]);
+              player1 = (await getNamedAccounts()).player1;
+              console.log(`Deployer address: ${deployer}`);
+              console.log(`Player1 address: ${player1}`);
+              // Get contract: SnakeGame
               snakeGame = await ethers.getContract("SnakeGame", deployer);
-          });
-
-          describe("constructor", async () => {
-              it("sets given parameter correctly", async () => {
-                  const scoreToClaimNft = await snakeGame.getScoreToClaimNft();
-                  // console.log(scoreToClaimNft);
-                  assert.equal(scoreToClaimNft, 50);
-              });
+              // Get contract: GameTokens
+              gameTokens = await ethers.getContract("GameTokens", deployer);
+              // Get contract: SnakeToken
+              snakeTokenAddress = await gameTokens.getSnakeContractAddress();
+              snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
+              // Get contract: FruitToken
+              fruitTokenAddress = await gameTokens.getFruitContractAddress();
+              fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
           });
 
           describe("gameStart", async () => {
-              it("reverts when player don't have at least one gameCredit", async () => {
-                  const gameCredits = (await snakeGame.getPlayerData()).gameCredits;
-                  // console.log(gameCredits);
+              it("reverts when player don't have any gameCredits", async () => {
                   await expect(snakeGame.gameStart()).to.be.revertedWith(
-                      "SnakeGame__NoGamesCredits"
+                      "SnakeGame__NoGameCredits"
                   );
               });
-              it("decrements parameter `gameCredits`", async () => {
-                  // Need to call function fundGame from GameTokens smart contract!!!
-                  // Simulate call function gameFund: Add 1 gameCredits
-                  const setGameCredits = await snakeGame.setPlayerData();
-                  const gameCreditsBeforeCall = (await snakeGame.getPlayerData()).gameCredits;
-                  // console.log(gameCreditsBeforeCall);
-                  const gameStartCall = await snakeGame.gameStart();
-                  const gameCreditsAfterCall = (await snakeGame.getPlayerData()).gameCredits;
-                  // console.log(gameCreditsAfterCall);
-                  assert.equal(gameCreditsAfterCall, 0);
+              it.only("decrements `gameCredits` by one", async () => {
+                  await gameTokens.snakeAirdropClaim();
+                  await snakeToken.approve(gameTokens.address, 1000);
+                  const gameCreditsBeforeBuyCredits = (
+                      await gameTokens.getPlayerData()
+                  ).gameCredits.toString();
+                  console.log("JS: GameCredits before BuyCredits:", gameCreditsBeforeBuyCredits);
+                  // 0
+                  await gameTokens.buyCredits(2);
+                  // 2
+                  const gameCreditsBeforeStart = (
+                      await gameTokens.getPlayerData()
+                  ).gameCredits.toString();
+                  console.log("JS: GameCredits before gameStart:", gameCreditsBeforeStart);
+                  // 2
+                  await snakeGame.gameStart();
+                  const expectedGameCredits = 1;
+                  const gameCreditsAfter = (
+                      await gameTokens.getPlayerData()
+                  ).gameCredits.toString();
+                  console.log("JS: GameCredits after gameStart:", gameCreditsAfter);
+                  assert.equal(expectedGameCredits, gameCreditsAfter);
               });
               it("sets parameter `gameStartedFlag` to `true`", async () => {
                   // Need to call function fundGame from GameTokens smart contract!!!
@@ -225,4 +242,16 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   );
               });
           });
+
+          // Need to write more tests for getter functions, receive and fallback:
+          // getAnyPlayerData
+          // getPlayerData
+          // getPlayerStats
+          // getCurrentPlayerAddress
+          // getScoreToClaimNft
+          // getSnakeGameContractAddress
+          // getEthBalance
+          // receive
+          // fallback
+          // setPlayerData - to be deleted
       });

@@ -6,15 +6,14 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments;
     const { deployer } = await getNamedAccounts();
 
-    // Constructor parameters
-    const scoreToClaimNft = 50;
-
     // Deploy contract SnakeGame
-    let args = [scoreToClaimNft];
+    const args = [];
     const snakeGame = await deploy("SnakeGame", {
         from: deployer,
         args: args,
         log: true,
+        // gasLimit: 4000000,
+        autoMine: true, // speed up deployment on local network, no effect on live networks
         waitConfirmations: network.config.waitBlockConfirmations || 1,
     });
 
@@ -26,4 +25,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log("-------------------------------------------------------");
 };
 
-module.exports.tags = ["all", "snakegame"];
+module.exports.tags = ["all", "SnakeGame"];

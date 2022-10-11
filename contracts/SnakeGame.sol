@@ -6,14 +6,14 @@ pragma solidity ^0.8.17;
 ///////////////
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 //////////////
 //  Errors  //
 //////////////
-error SnakeGame__NoGamesCredits();
+error SnakeGame__NoGameCredits();
 error SnakeGame__GameNotStarted();
 error SnakeGame__EthWithdrawalFailed();
-error SnakeGame__CalledFunctionDoesNotExist();
 
 ////////////////////
 // Smart Contract //
@@ -25,8 +25,8 @@ error SnakeGame__CalledFunctionDoesNotExist();
  * @notice The main Smart Contract that manages game start and game over.
  * @dev The main smart contract containing functions that manages game start and game over.
  * Main functions: gameStart, gameOver, withdrawEth
- * Getter functions: getPlayerData, getPlayerStats, getSnakeGameContractAddress, getCurrentPlayerAddress,
- * getMinScoreToClaimNft, getMaxNumberNftAwards, getSnakeGameEthBalance
+ * Getter functions: getAnyPlayerData, getPlayerData, getAnyPlayerStats, getPlayerStats,
+ * getCurrentPlayerAddress, getScoreToClaimNft, getMaxSnakeNftsClaim, getEthBalance
  * Other: receive, fallback
  */
 contract SnakeGame is Ownable, ReentrancyGuard {
@@ -43,6 +43,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * uint256 fruitToClaim - number of Fruit Tokens [FRUIT] avaliable to claim
      * uint8 snakeNftsToClaim - number of Snake NFTs [SNFT] avaliable to claim
      * uint8 superNftToClaim - number of Super Pet NFTs [SPET] avaliable to claim
+     *
      */
     struct PlayerData {
         bool airdropCollectedFlag;
@@ -60,8 +61,10 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * uint256 lastScore - last player's game score
      * uint256 bestScore - best player's game score
      * uint256 fruitTokensCollected - sum of all collected and claimed Fruit Tokens [FRUIT]
-     * uint8 snakeNftsCollected - number of Snake NFTs [SNFT] collected in the game (sell or burn don't decrease this parameter)
-     * uint8 superNftCollected - number of Super Pet NFTs [SPET] collected in the game (sell or burn don't decrese this parameter)
+     * uint8 snakeNftsCollected - number of Snake NFTs [SNFT] collected in the game
+     * uint8 superPetNftsCollected - number of Super Pet NFTs [SPET] collected in the game
+     * uint8[] snakeNftsTokenIds - array of Player owned Snake NFTs [SNFT] tokenIDs
+     * uint8[] superNftTokenIds - array of Player owned Super Pet NFTs [SPET] token IDs
      */
     struct PlayerStats {
         uint8 gamesPlayed;
@@ -69,15 +72,19 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         uint256 bestScore;
         uint256 fruitTokensCollected;
         uint8 snakeNftsCollected;
-        uint8 superNftCollected;
+        uint8 superPetNftsCollected;
+        uint256[] snakeNftsTokenIds;
+        uint256[] superNftTokenIds;
     }
 
     //////////////
     //  Events  //
     //////////////
-    event GameStarted(address indexed player);
-    event SnakeNftUnlocked(address indexed player);
-    event GameOver(address indexed player);
+    event GameStarted();
+    event GameOver();
+    event SnakeNftUnlocked();
+    event GetMorePoints();
+    event MaxSnakeNftsClaimed(uint8 snakeNftsCollected);
 
     ////////////////
     //  Mappings  //
@@ -94,10 +101,14 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     ///////////////////////
 
     /// @dev Current player address
-    address internal s_player;
+    address internal player;
 
-    /// @dev Minimum score obtained in single game required to unlock one snakeNft [SNFT].
-    uint8 internal immutable s_scoreToClaimNft; // 50
+    /// @dev Minimum score obtained in single game required to unlock for mint one SnakeNft [SNFT].
+    uint8 public constant SCORE_TO_CLAIM_SNAKE_NFT = 100;
+
+    /// @dev Maximum number of Snake NFT [SNFT] possible to claim in the game by one Player
+    /// Player can obviously buy or sell Snake NFTs, but can't gain more in the game.
+    uint8 public constant MAX_SNAKE_NFTS_CLAIM = 25;
 
     /////////////////
     //  Modifiers  //
@@ -105,7 +116,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /// @dev Modifier sets msg.sender as current player
     modifier isPlayer() {
-        s_player = msg.sender;
+        player = msg.sender;
         _;
     }
 
@@ -113,14 +124,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     //  Constructor  //
     ///////////////////
 
-    /**
-     * @dev SnakeGame contract constructor.
-     * Sets given parameter to appropriate storage immutable variables.
-     * @param scoreToClaimNft minimum score in last game to claim SnakeNFT
-     */
-    constructor(uint8 scoreToClaimNft) {
-        s_scoreToClaimNft = scoreToClaimNft;
-    }
+    /// @dev SnakeGame contract constructor.
+    constructor() {}
 
     ////////////////////
     // Main Functions //
@@ -141,12 +146,14 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      */
     function gameStart() external isPlayer {
         // Check if player has at least one gameCredit
-        if (s_players[s_player].gameCredits < 1) {
-            revert SnakeGame__NoGamesCredits();
+        console.log("SOLIDITY:GameCredits in startGame:", s_players[player].gameCredits);
+        if (s_players[player].gameCredits < 1) {
+            revert SnakeGame__NoGameCredits();
         }
-        s_players[s_player].gameCredits--;
-        s_players[s_player].gameStartedFlag = true;
-        emit GameStarted(s_player);
+        s_players[player].gameCredits--;
+        s_players[player].gameStartedFlag = true;
+        emit GameStarted();
+        console.log("GAME STARTED");
     }
 
     /**
@@ -156,37 +163,43 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * Normally the function is called by front-end application automaticly, after current game is over.
      *
      * First the function checks, if Player started the game before function gameOver is called.
-     * Then function updates games paramenter and game statistics.
-     * Next function checks SnakeNft claim eligibility, sets appropriate parameter if conditions
-     * are fulfilled and emit an event.
-     * Finally function sets `lastScore` parameter, checks if current Player's score is higher than
-     * his best score and if yes updates appropriate parameter.
+     * Then function updates games paramenter and game statistics. Then function sets `lastScore` parameter,
+     * checks if current Player's score is higher than his best score and if yes updates appropriate parameter.
      * Finally function emit GameOver event.
+     * At the end function checks Snake NFT claim eligibility, sets appropriate parameter `snakeNftsToClaim`
+     * if conditions are fulfilled and emit an event.
      *
      * @param _score gives function number of points gained in last game
      */
     function gameOver(uint256 _score) external isPlayer {
         // Check if player actually played the game
-        if (s_players[s_player].gameStartedFlag == false) {
+        if (s_players[player].gameStartedFlag == false) {
             revert SnakeGame__GameNotStarted();
         }
         // Game parameters update
-        s_players[s_player].gameStartedFlag = false;
-        s_players[s_player].fruitToClaim += _score;
+        s_players[player].gameStartedFlag = false;
+        s_players[player].fruitToClaim += _score;
         // Game stats update
-        s_stats[s_player].gamesPlayed++;
-        s_stats[s_player].fruitTokensCollected += _score;
-        // Check SnakeNft claim
-        if (_score >= s_scoreToClaimNft) {
-            s_players[s_player].snakeNftsToClaim++;
-            emit SnakeNftUnlocked(s_player);
-        }
+        s_stats[player].gamesPlayed++;
+        s_stats[player].fruitTokensCollected += _score;
         // Set lastScore and bestScore
-        s_stats[s_player].lastScore = _score;
-        if (_score > s_stats[s_player].bestScore) {
-            s_stats[s_player].bestScore = _score;
+        s_stats[player].lastScore = _score;
+        if (_score > s_stats[player].bestScore) {
+            s_stats[player].bestScore = _score;
         }
-        emit GameOver(s_player);
+        emit GameOver();
+        // Check SnakeNft claim
+        uint8 snakeNftsCollected = s_stats[player].snakeNftsCollected;
+        if (snakeNftsCollected < MAX_SNAKE_NFTS_CLAIM) {
+            if (_score >= SCORE_TO_CLAIM_SNAKE_NFT) {
+                s_players[player].snakeNftsToClaim++;
+                emit SnakeNftUnlocked();
+            } else {
+                emit GetMorePoints();
+            }
+        } else {
+            emit MaxSnakeNftsClaimed(snakeNftsCollected);
+        }
     }
 
     /**
@@ -205,17 +218,30 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         }
     }
 
+    ///////////////////////
+    // Private Functions //
+    ///////////////////////
+
+    /**
+     * @dev Set PlayerData parameters
+     * This is internal function, therefore can only be called by this smart contract or inherited smart contracts.
+     */
+    function setPlayerData(address _player) internal view onlyOwner returns (PlayerData memory) {
+        return s_players[_player];
+    }
+
     //////////////////////
     // Getter Functions //
     //////////////////////
 
     /**
      * @dev Getter function to get PlayerData parameters for any given Player
-     * Can ONLY be called by owner of smart contract.
+     * Can ONLY be called by `owner` of smart contract (onlyOwner modifier),
+     * which is `GameTokens` smart contract.
      * @param _player address of Player to check game parameters
      * @return Private game parameters of any given Player
      */
-    function getAnyPlayerData(address _player) external view returns (PlayerData memory) {
+    function getAnyPlayerData(address _player) external view onlyOwner returns (PlayerData memory) {
         return s_players[_player];
     }
 
@@ -230,37 +256,47 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Function to get Player's public game statistics.
-     * @dev Getter function to get current PlayerStats public statistics.
+     * @notice Function to get Player's public game statistics for any given Player
+     * @dev Getter function to get PlayerStats public statistics for any given Player
      * Can be called by anyone and shows public game statistics of any given Player's address.
      * @return Public game statistics of any given Player.
      */
-    function getPlayerStats(address _player) external view returns (PlayerStats memory) {
+    function getAnyPlayerStats(address _player) public view returns (PlayerStats memory) {
         return s_stats[_player];
     }
 
     /**
-     * @dev Getter function to get current Player's address.
-     * @return s_player the address of current Player
+     * @notice Function to get Player's public game statistics.
+     * @dev Getter function to get current PlayerStats public statistics.
+     * Can be called by anyone and shows current Player public game statistics.
+     * @return Public game statistics of any given Player.
      */
-    function getCurrentPlayerAddress() external view returns (address) {
-        return s_player;
-    }
-
-    /**
-     * @dev Getter function to get immutable parameter s_scoreToClaimNft.
-     * @return s_scoreToClaimNft required game score to claim SnakeNFT
-     */
-    function getScoreToClaimNft() external view returns (uint8) {
-        return s_scoreToClaimNft;
+    function getPlayerStats(address _player) public view returns (PlayerStats memory) {
+        return s_stats[_player];
     }
 
     /**
      * @dev Getter function to get this smart contract address.
      * @return This smart contract address.
      */
-    function getSnakeGameContractAddress() external view returns (address) {
-        return address(this);
+    function getCurrentPlayerAddress() public view returns (address) {
+        return player;
+    }
+
+    /**
+     * @dev Getter function to get score required to mint NFT.
+     * @return Required game score to claim Snake NFT [SNFT]
+     */
+    function getScoreToClaimNft() public pure returns (uint8) {
+        return SCORE_TO_CLAIM_SNAKE_NFT;
+    }
+
+    /**
+     * @dev Getter function to get maximum amount of Snake NFT [SNFT] avaliable to claim in the game.
+     * @return Maximum number of Snake NFT [SNFT] claim
+     */
+    function getMaxSnakeNftsClaim() public pure returns (uint8) {
+        return MAX_SNAKE_NFTS_CLAIM;
     }
 
     /**
@@ -285,9 +321,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @notice Fallback function
      * @dev Function executes if none of the other functions match the intended function calls.
      */
-    fallback() external payable {
-        revert SnakeGame__CalledFunctionDoesNotExist();
-    }
+    fallback() external payable {}
 
     /////////////////////
     // Test Functions  //
@@ -297,9 +331,9 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @dev Test function only for unit tests purposed, not for production.
      * @return Private game parameters of current Player.
      */
-    function setPlayerData() external returns (PlayerData memory) {
-        // Simulate call function gameFund: Add 1 gameCredits
-        s_players[msg.sender].gameCredits++;
-        return s_players[msg.sender];
-    }
+    // function setPlayerData() external returns (PlayerData memory) {
+    //     // Simulate call function gameFund: Add 1 gameCredits
+    //     s_players[msg.sender].gameCredits++;
+    //     return s_players[msg.sender];
+    // }
 }

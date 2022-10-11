@@ -1,3 +1,4 @@
+require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-deploy");
@@ -14,15 +15,28 @@ const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "";
 module.exports = {
     solidity: "0.8.17",
     defaultNetwork: "hardhat",
+    paths: {
+        deploy: "deploy",
+        deployments: "deployments",
+    },
     networks: {
         localhost: {
+            live: false,
+            saveDeployments: true,
+            tags: ["local"],
             chainId: 31337,
         },
         hardhat: {
+            live: false,
+            saveDeployments: true,
+            tags: ["test", "local"],
             chainId: 31337,
             blockConfirmations: 1,
         },
         goerli: {
+            live: true,
+            saveDeployments: true,
+            tags: ["staging", "live"],
             chainId: 5,
             url: GOERLI_RPC_URL,
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
@@ -41,12 +55,10 @@ module.exports = {
         // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
     },
     namedAccounts: {
-        deployer: {
-            default: 0,
-        },
-        player: {
-            default: 1,
-        },
+        deployer: 0,
+        player1: 1,
+        player2: 2,
+        player3: 3,
     },
     mocha: {
         timeout: 200000, // 200 seconds max
