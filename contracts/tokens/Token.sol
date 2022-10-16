@@ -28,10 +28,6 @@ error Token__InvalidFunctionCall();
  * This means, that ONLY owner will be authorized to call some sensitive contract functions like `mint` or `burn`,
  * which can be obtained by using `onlyOwner` modifier for these functions.
  *
- * `Token` contract is used for creation of two ERC-20 game utility tokens contract: `Snake Token [SNAKE]` and `Fruit Token [FRUIT]`.
- * Both tokens have 0 decimals, what is obtained by override function `decimals`. Both tokens are also burnable and mintable, but
- * this functionalities are restricted to use only for contract `owner`, which in our game is `SnakeGame` contract.
- *
  * Smart contract functions:
  * Overriden functions: mint, decimals
  * Other functions: receive, fallback
@@ -63,8 +59,7 @@ contract Token is ERC20, ERC20Burnable, Ownable {
 
     /**
      * @dev Function `decimals` override OpenZeppelin ERC20 contract function and returns new token decimal value `0`,
-     * instead of default and standard value `18`. This is intended and needed in the game and make our game utility
-     * tokens easier to use.
+     * instead of default and standard value `18`.
      * @return Number of token decimals.
      */
     function decimals() public view virtual override returns (uint8) {

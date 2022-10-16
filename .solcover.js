@@ -1,3 +1,5 @@
 module.exports = {
-    skipFiles: ['contracts/Test.sol']
+    skipFiles: ['contracts/Test.sol'],
+    istanbulFolder: './coverage',
+    istanbulReporter: ['html', 'lcov', 'text', 'json', 'text-summary']
   };

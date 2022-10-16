@@ -8,68 +8,36 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     // Constructor parameters
 
-    const snakeNftUris = [
-        "Snake NFT URI 1",
-        "Snake NFT URI 2",
-        "Snake NFT URI 3",
-        "Snake NFT URI 4",
-        "Snake NFT URI 5",
-        "Snake NFT URI 6",
-        "Snake NFT URI 7",
-        "Snake NFT URI 8",
-        "Snake NFT URI 9",
-        "Snake NFT URI 10",
-    ];
+    // Snake Token imputs
+    const snakeTokenName = "Snake Token";
+    const snakeTokenSymbol = "SNAKE";
+    // Fruit Token inputs
+    const fruitTokenName = "Fruit Token";
+    const fruitTokenSymbol = "FRUIT";
+    // Snake NFT inputs
+    const snakeNftName = "Snake NFT";
+    const snakeNftSymbol = "SNFT";
+    const snakeNftUris = ["snakeNftUri0", "snakeNftUri1", "snakeNftUri2"];
+    // Super Pet NFT inputs
+    const superPetNftName = "Super Pet NFT";
+    const superPetNftSymbol = "SPET";
+    const superPetNftUris = ["superPetNftUri0", "superPetNftUri1", "superPetNftUri2"];
 
-    const superPetNftUris = [
-        "Super Pet NFT URI 1",
-        "Super Pet NFT URI 2",
-        "Super Pet NFT URI 3",
-        "Super Pet NFT URI 4",
-        "Super Pet NFT URI 5",
-        "Super Pet NFT URI 6",
-        "Super Pet NFT URI 7",
-        "Super Pet NFT URI 8",
-        "Super Pet NFT URI 9",
-        "Super Pet NFT URI 10",
-    ];
-
-    const snakeTokenData = {
-        tokenName: "Snake Token",
-        tokenSymbol: "SNAKE",
-    };
-
-    const fruitTokenData = {
-        tokenName: "Fruit Token",
-        tokenSymbol: "FRUIT",
-    };
-
-    const snakeNftTokenData = {
-        tokenName: "Snake NFT",
-        tokenSymbol: "SNFT",
-        tokenUris: snakeNftUris,
-    };
-
-    const superPetNftTokenData = {
-        tokenName: "Super Pet NFT",
-        tokenSymbol: "SPET",
-        tokenUris: superPetNftUris,
-    };
-
-    // Deploy contract SnakeGame
+    // Deployment arguments array
     const args = [
-        snakeTokenData.tokenName,
-        snakeTokenData.tokenSymbol,
-        fruitTokenData.tokenName,
-        fruitTokenData.tokenSymbol,
-        snakeNftTokenData.tokenName,
-        snakeNftTokenData.tokenSymbol,
-        snakeNftTokenData.tokenUris,
-        superPetNftTokenData.tokenName,
-        superPetNftTokenData.tokenSymbol,
-        superPetNftTokenData.tokenUris,
+        snakeTokenName,
+        snakeTokenSymbol,
+        fruitTokenName,
+        fruitTokenSymbol,
+        snakeNftName,
+        snakeNftSymbol,
+        snakeNftUris,
+        superPetNftName,
+        superPetNftSymbol,
+        superPetNftUris,
     ];
 
+    // Deploy `SnakeGame` contract
     const snakeGame = await deploy("SnakeGame", {
         from: deployer,
         args: args,

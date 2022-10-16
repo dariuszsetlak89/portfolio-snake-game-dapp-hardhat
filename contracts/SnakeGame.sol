@@ -18,15 +18,13 @@ error SnakeGame__GameNotStarted();
 error SnakeGame__SnakeAirdopAlreadyClaimed();
 error SnakeGame__NotEnoughEthSent(uint256 ethSent, uint256 ethRequied);
 error SnakeGame__SnakeTokensBalanceTooLow(uint256 snakeBalance, uint256 requiredSnakeBalance);
-error SnakeGame__SnakeTokensTransferFailed();
 error SnakeGame__NoFruitTokensToClaim();
 error SnakeGame__FruitTokensBalanceTooLow(uint256 fruitBalance, uint256 requiredFruitBalance);
-error SnakeGame__FruitTokensTransferFailed();
+error SnakeGame__FruitAmountIncorrect();
 error SnakeGame__NoSnakeNftsToClaim();
-error SnakeGame__NoSuperPetNftToClaim();
+error SnakeGame__NoSuperNftToClaim();
 error SnakeGame__SnakeNftBalanceTooLow(uint256 snakeNftBalance, uint256 requiredSnakeNftBalance);
 error SnakeGame__EthWithdrawalFailed();
-error SnakeGame__InvalidFunctionCall();
 
 ////////////////////
 // Smart Contract //
@@ -37,15 +35,12 @@ error SnakeGame__InvalidFunctionCall();
  * @author Dariusz Setlak
  * @notice The main Snake Game Smart Contract
  * @dev The main smart contract of `Snake Game Dapp` containing the following functions:
- * Deployment FUnctions: createSnakeToken, createFruitToken, createSnakeNft, createSuperPetNft
+ * Deployment Functions: createToken, createNft
  * Game functions: gameStart, gameOver
  * Token functions: snakeAirdrop, buySnake, buyCredits, fruitClaim, fruitToSnakeSwap
- * NFT functions: snakeNftClaim, checkSuperPetNftClaim, superPetNftClaim
- * Private functions: gameCreditPriceReducer, randomNumber, snakeNftClaimCheck, superPetNftClaimCheck
- * Getter functions: getAnyPlayerData, getPlayerData, getAnyPlayerStats, getPlayerStats, getCurrentPlayerAddress,
- * getScoreToClaimNft, getSnakeAirdropAmount, getGameCreditPrice, getSnakeEthRate, getFruitSnakeRate,
- * getMaxSnakeNftsClaim, getMaxSuperPetNftsClaim, getFruitMintFeeSnakeNft, getFruitMintFeeSuperNft,
- * getSuperNftMintFeeEth, getSnakeNftsRequired, getEthBalance
+ * NFT functions: snakeNftClaim, checkSuperNftClaim, superPetNftClaim
+ * Private functions: gameCreditPriceReducer, randomNumber
+ * Getter functions: getAnyPlayerData, getPlayerData, getAnyPlayerStats, getPlayerStats, getEthBalance
  * Other functions: withdrawEth, receive, fallback
  */
 contract SnakeGame is Ownable, ReentrancyGuard {
@@ -77,38 +72,16 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * uint256 fruitsCollected - sum of FRUIT tokens collected in all played games.
      * uint256 lastScore - Player's last game score
      * uint256 bestScore - Player's best game score
-     * uint256 snakeNftsClaimed - number of `Snake NFTs` awards claimed
-     * uint256 superPetNftsClaimed - number of `Super Pet NFTs` awards claimed
+     * uint256 snakeNftsAmount - number of `Snake NFTs` awards claimed
+     * uint256 superNftsAmount - number of `Super Pet NFTs` awards claimed
      */
     struct PlayerStats {
         uint256 gamesPlayed;
         uint256 fruitsCollected;
         uint256 lastScore;
         uint256 bestScore;
-        uint256 snakeNftsClaimed;
-        uint256 superPetNftsClaimed;
-    }
-
-    /**
-     * @dev Struct of `Token` contract constructor parameters.
-     * string name - token name
-     * string symbol - token symbol
-     */
-    struct TokenData {
-        string name;
-        string symbol;
-    }
-
-    /**
-     * @dev Struct of `Nft` contract constructor parameters.
-     * string name - token name
-     * string symbol - token symbol
-     * string[] uris - token uris array
-     */
-    struct NftData {
-        string name;
-        string symbol;
-        string[] uris;
+        uint256 snakeNftsAmount;
+        uint256 superNftsAmount;
     }
 
     //////////////
@@ -118,14 +91,16 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     event GameOver(address indexed player);
     event SnakeNftUnlocked(address indexed player);
     event MaxSnakeNftsClaimed(address indexed player);
-    event SuperPetNftUnlocked(address indexed player);
-    event MaxSuperPetNftsClaimed(address indexed player);
+    event SuperNftUnlocked(address indexed player);
+    event MaxSuperNftsClaimed(address indexed player);
     event SnakeAirdropReceived(address indexed player, uint256 indexed snakeAmount);
     event SnakeTokensBought(address indexed player, uint256 indexed snakeAmount);
     event CreditsBought(address indexed player, uint256 indexed creditsAmount);
     event FruitTokensClaimed(address indexed player, uint256 indexed fruitAmount);
     event FruitsToSnakeSwapped(address indexed player, uint256 indexed fruitAmount, uint256 indexed snakeAmount);
-    event ethTransferReceived(uint256 ethAmount);
+    event SnakeNftsClaimed(address indexed player, uint256 indexed snakeNftsAmount);
+    event SuperNftClaimed(address indexed player);
+    event EthTransferReceived(uint256 ethAmount);
 
     ////////////////
     //  Mappings  //
@@ -148,29 +123,17 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     // Contract variables //
     ////////////////////////
 
-    /// @dev `SnakeToken` contract constructor parameters
-    TokenData public i_snakeData;
-
-    /// @dev `FruitToken` contract constructor parameters
-    TokenData public i_fruitData;
-
-    /// @dev `SnakeNft` contract constructor parameters
-    NftData public i_snakeNftData;
-
-    /// @dev `SuperPetNft` contract constructor parameters
-    NftData public i_superPetNftData;
-
     /// @dev Deployed `Token` contract instance `SnakeToken`
-    Token public i_snakeToken;
+    Token public s_snakeToken;
 
     /// @dev Deployed `Token` contract instance `FruitToken`
-    Token public i_fruitToken;
+    Token public s_fruitToken;
 
     /// @dev Deployed `Nft` contract instance `SnakeNft`
-    Nft public i_snakeNft;
+    Nft public s_snakeNft;
 
     /// @dev Deployed `Nft` contract instance `SuperPetNft`
-    Nft public i_superPetNft;
+    Nft public s_superPetNft;
 
     /////////////////////////
     // Constant variables  //
@@ -179,18 +142,18 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /// @dev Minimum game score required to unlock for mint one `Snake NFT`.
     uint256 public constant SCORE_TO_CLAIM_SNAKE_NFT = 100;
 
-    /// @dev SNAKE tokens airdrop amount. Default value: 10
-    uint256 public SNAKE_AIRDROP_AMOUNT;
+    /// @dev SNAKE tokens airdrop amount
+    uint256 public SNAKE_AIRDROP_AMOUNT = 10;
 
     /// @dev Game credit base cost paid in SNAKE tokens.
     uint256 public GAME_CREDIT_PRICE = 5;
 
     /// @dev ETH to SNAKE token exchange rate
-    /// 1 ETH => 100 SNAKE
-    uint256 public constant SNAKE_ETH_RATE = 100;
+    /// 1 ETH => 100 SNAKE, 0.01 ETH => 1 SNAKE
+    uint256 public SNAKE_ETH_RATE = 1e16; // 0.01 * 1e18
 
     /// @dev FRUIT token to SNAKE token exchange rate
-    /// 20 FRUIT => 1 SNAKE
+    /// 20 FRUIT => 1 SNAKE, 1 FRUIT => 0.05 SNAKE
     uint256 public constant FRUIT_SNAKE_RATE = 20;
 
     /// @dev Maximum number of `Snake NFT` tokens possible to claim in the game by one Player
@@ -200,16 +163,13 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     uint256 public constant MAX_SUPER_NFTS = 3;
 
     /// @dev Mint fee in FRUIT tokens required to mint `Snake NFT`.
-    uint256 public constant FRUIT_MINT_FEE_SNAKE_NFT = 100;
-
-    /// @dev Mint fee in FRUIT tokens required to mint `Super Pet NFT`.
-    uint256 public constant FRUIT_MINT_FEE_SUPER_NFT = 500;
+    uint256 public constant FRUIT_MINT_FEE = 100;
 
     /// @dev Mint fee in ETH required to mint `Super Pet NFT`: 0.1 ETH = 0.1e18 WEI = 1e17 WEI
-    uint256 public constant ETH_MINT_FEE_SUPER_NFT = 1e17;
+    uint256 public constant ETH_MINT_FEE = 1e17;
 
     /// @dev Minimum balance of Snake NFT [SNFT] required to unlock Super Pet NFT [SPET].
-    uint8 public constant SNAKE_NFTS_REQUIRED = 5;
+    uint8 public constant SNAKE_NFTS_REQUIRED = 10;
 
     /////////////////
     //  Modifiers  //
@@ -251,16 +211,14 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         string memory superPetNftSymbol,
         string[] memory superPetNftUris
     ) {
-        i_snakeData = TokenData(snakeTokenName, snakeTokenSymbol);
-        i_fruitData = TokenData(fruitTokenName, fruitTokenSymbol);
-        i_snakeNftData = NftData(snakeNftName, snakeNftSymbol, snakeNftUris);
-        i_superPetNftData = NftData(superPetNftName, superPetNftSymbol, superPetNftUris);
-
-        // Game tokens deployments calls
-        createSnakeToken(i_snakeData);
-        createFruitToken(i_fruitData);
-        createSnakeNft(i_snakeNftData);
-        createSuperPetNft(i_superPetNftData);
+        // Create `Snake Token [SNAKE]`
+        s_snakeToken = createToken(snakeTokenName, snakeTokenSymbol);
+        // Create `Fruit Token [FRUIT]`
+        s_fruitToken = createToken(fruitTokenName, fruitTokenSymbol);
+        // Create `Snake NFT [SNFT]`
+        s_snakeNft = createNft(snakeNftName, snakeNftSymbol, snakeNftUris);
+        // Create `Super Pet NFT [SPET]`
+        s_superPetNft = createNft(superPetNftName, superPetNftSymbol, superPetNftUris);
     }
 
     //////////////////////////
@@ -268,43 +226,30 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     //////////////////////////
 
     /**
-     * @dev Function deploys `Token` contract and creates contract instance `SnakeToken` using given constructor parameters.
-     * This contract instance is a standard ERC-20 token implementation, which is our game utility token called `Snake Token [SNAKE]`.
-     * Function calls only once, when `SnakeGame` contract is deployed.
-     * @param _snakeData `Token` contract constructor parameters to deploy contract instance `SnakeToken`
+     * @dev Function deploys `Token` contract and using given constructor parameters creates contract instance,
+     * which is a standard ERC-20 token implementation.
+     * @param _name token name constructor parameter
+     * @param _symbol token symbol constructor parameter
      */
-    function createSnakeToken(TokenData memory _snakeData) private {
-        i_snakeToken = new Token(_snakeData.name, _snakeData.symbol);
+    function createToken(string memory _name, string memory _symbol) private returns (Token) {
+        Token token = new Token(_name, _symbol);
+        return token;
     }
 
     /**
-     * @dev Function deploys `Token` contract and creates contract instance `FruitToken` using given constructor parameters.
-     * This contract instance is a standard ERC-20 token implementation, which is our game utility token called `Fruit Token [FRUIT]`.
-     * Function calls only once, when `SnakeGame` contract is deployed.
-     * @param _fruitData `Token` contract constructor parameters to deploy contract instance `FruitToken`
+     * @dev Function deploys `Nft` contract and using given constructor parameters creates contract instance,
+     * which is a standard ERC-721 token implementation.
+     * @param _name token name constructor parameter
+     * @param _symbol token symbol constructor parameter
+     * @param _uris token uris array constructor parameter
      */
-    function createFruitToken(TokenData memory _fruitData) private {
-        i_fruitToken = new Token(_fruitData.name, _fruitData.symbol);
-    }
-
-    /**
-     * @dev Function deploys `Nft` contract and creates contract instance `SnakeNft` using given constructor parameters.
-     * This contract instance is a standard ERC-721 token implementation, which is our game utility token called `Snake NFT [SNFT]`.
-     * Function calls only once, when `SnakeGame` contract is deployed.
-     * @param _snakeNftData `Nft` contract constructor parameters to deploy contract instance `SnakeNft`
-     */
-    function createSnakeNft(NftData memory _snakeNftData) private {
-        i_snakeNft = new Nft(_snakeNftData.name, _snakeNftData.symbol, _snakeNftData.uris);
-    }
-
-    /**
-     * @dev Function deploys `Nft` contract and creates contract instance `SuperPetNft` using given constructor parameters.
-     * This contract instance is a standard ERC-721 token implementation, which is our game utility token called `Super Pet NFT [SPET]`.
-     * Function calls only once, when `SnakeGame` contract is deployed.
-     * @param _superPetNftData `Nft` contract constructor parameters to deploy contract instance `SuperPetNft`
-     */
-    function createSuperPetNft(NftData memory _superPetNftData) private {
-        i_superPetNft = new Nft(_superPetNftData.name, _superPetNftData.symbol, _superPetNftData.uris);
+    function createNft(
+        string memory _name,
+        string memory _symbol,
+        string[] memory _uris
+    ) private returns (Nft) {
+        Nft nft = new Nft(_name, _symbol, _uris);
+        return nft;
     }
 
     ////////////////////
@@ -340,32 +285,43 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * Function is called automaticly by the Player, using front-end application.
      *
      * Function checks, if Player started the game before function gameOver is called.
-     * Next function updates games paramenters and game statistics. Then function sets `lastScore`
-     * and `bestScore` parameters and finally function emit `GameOver` event.
-     * At the end function calls private function `snakeNftCheck` to check Player's `Snake NFT` claim eligibility.
+     * Next function updates game parameters and statistics. Then function sets `lastScore`
+     * and `bestScore` parameters. After that function call private function to check Player's
+     * `Snake NFT` claim eligibility. Finally function updates games paramenters and emits an event.
+     *
+     * Function is protected from reentrancy attack, by using `nonReentrant` modifier from
+     * OpenZeppelin library.
      *
      * @param _score number of points gained by Player in the last game
      */
-    function gameOver(uint256 _score) external setPlayer {
+    function gameOver(uint256 _score) external nonReentrant setPlayer {
         // Check if Player actually played the game
         if (s_players[player].gameStartedFlag == false) {
             revert SnakeGame__GameNotStarted();
         }
         // Player's game parameters update
-        s_players[player].gameStartedFlag = false;
         s_players[player].fruitToClaim += _score;
-        // Player's game stats update
+        s_players[player].gameStartedFlag = false;
+        // Player's game statistics update
         s_stats[player].gamesPlayed++;
         s_stats[player].fruitsCollected += _score;
         // Set lastScore and bestScore
         s_stats[player].lastScore = _score;
-        uint256 bestScore = s_stats[player].bestScore;
-        if (_score > bestScore) {
-            bestScore = _score;
+        if (_score > s_stats[player].bestScore) {
+            s_stats[player].bestScore = _score;
         }
+        // Emit an event
         emit GameOver(player);
-        // Check `Snake NFT` claim eligibility
-        snakeNftClaimCheck(_score);
+        // Check Player's `Snake NFT` claim eligibility.
+        uint256 snakeNftsAmount = s_stats[player].snakeNftsAmount;
+        if (snakeNftsAmount < MAX_SNAKE_NFTS) {
+            if (_score >= SCORE_TO_CLAIM_SNAKE_NFT) {
+                s_players[player].snakeNftsToClaim++;
+                emit SnakeNftUnlocked(player);
+            }
+        } else {
+            emit MaxSnakeNftsClaimed(player);
+        }
     }
 
     /////////////////////
@@ -381,7 +337,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      *
      * Function checks, if Player already received SNAKE airdrop. If yes, then transaction reverts
      * with an error message. If not, function mint SNAKE tokens to Player's account,
-     * switches `airdropCollectedFlag` to `true` and emit an event.
+     * switches `airdropCollectedFlag` to `true` and emits an event.
      *
      * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
      */
@@ -392,7 +348,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         }
         // Mint SNAKE tokens to Player's account
         s_players[player].snakeAirdropFlag = true;
-        i_snakeToken.mint(player, SNAKE_AIRDROP_AMOUNT);
+        s_snakeToken.mint(player, SNAKE_AIRDROP_AMOUNT);
         emit SnakeAirdropReceived(player, SNAKE_AIRDROP_AMOUNT);
     }
 
@@ -413,14 +369,14 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      *
      * @param _snakeAmount SNAKE tokens amount that Player wants to buy
      */
-    function buySnake(uint256 _snakeAmount) external payable nonReentrant setPlayer {
-        uint256 ethPayment = _snakeAmount / SNAKE_ETH_RATE;
+    function buySnake(uint256 _snakeAmount) public payable nonReentrant setPlayer {
+        uint256 ethPayment = _snakeAmount * SNAKE_ETH_RATE;
         // Check if Player sent enough ETH amount with function call.
         if (msg.value < ethPayment) {
             revert SnakeGame__NotEnoughEthSent(msg.value, ethPayment);
         }
         // Mint bought amount of SNAKE tokens to Player's account
-        i_snakeToken.mint(player, _snakeAmount);
+        s_snakeToken.mint(player, _snakeAmount);
         emit SnakeTokensBought(player, _snakeAmount);
     }
 
@@ -436,7 +392,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * Function checks, if Player has enough SNAKE balance to pay for the declared amount of
      * game credits. If not, then transaction reverts with an error message. If yes, then function
      * transfer SNAKE tokens from Player's account to `SnakeGame` contract (allowance required).
-     * If `transferFrom` transaction failed, then transaction reverts with an error message.
      * If `transferFrom` transaction succeed, then smart contract burns received SNAKE tokens,
      * increase Player's `gameCredits` parameter by `_creditsAmount` and emit an event.
      *
@@ -446,18 +401,15 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      */
     function buyCredits(uint256 _creditsAmount) external nonReentrant setPlayer {
         uint256 chargedFee = _creditsAmount * (GAME_CREDIT_PRICE - gameCreditPriceReducer());
-        uint256 snakeBalance = i_snakeToken.balanceOf(player);
+        uint256 snakeBalance = s_snakeToken.balanceOf(player);
         // Check if Player have enough SNAKE to pay a `chargeFee`
         if (snakeBalance < chargedFee) {
             revert SnakeGame__SnakeTokensBalanceTooLow(snakeBalance, chargedFee);
         }
         // Transfer SNAKE tokens to `SnakeGame` contract
-        bool transferStatus = i_snakeToken.transferFrom(player, address(this), chargedFee);
-        if (!transferStatus) {
-            revert SnakeGame__SnakeTokensTransferFailed();
-        }
+        s_snakeToken.transferFrom(player, address(this), chargedFee);
         // Burn SNAKE tokens fee transfered to `SnakeGame` contract
-        i_snakeToken.burn(chargedFee);
+        s_snakeToken.burn(chargedFee);
         s_players[player].gameCredits += _creditsAmount;
         emit CreditsBought(player, _creditsAmount);
     }
@@ -484,7 +436,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         }
         // Mint FRUIT tokens to Player's account
         s_players[player].fruitToClaim = 0;
-        i_fruitToken.mint(player, fruitAmount);
+        s_fruitToken.mint(player, fruitAmount);
         emit FruitTokensClaimed(player, fruitAmount);
     }
 
@@ -500,32 +452,35 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * Function is called by the Player, using front-end application.
      *
      * Function checks, if Player has enough SNAKE balance to pay for the declared amount of
-     * game credits. If not, then transaction reverts with an error message. If yes, then function
-     * transfer FRUIT tokens from Player's account to `SnakeGame` contract (allowance required).
-     * If `transferFrom` transaction failed, then transaction reverts with an error message.
-     * If `transferFrom` transaction succeed, then smart contract mint `snakeAmount` amount of SNAKE tokens
-     * to Player's account, burns received FRUIT tokens and emit an event.
+     * game credits. Function checks also, if given `_fruitAmount` is coorect number to give integer `snakeAmount`
+     * after token swap. If any of these conditions fail, transaction reverts with an error message.
+     * If both conditions pass, then function transfers FRUIT tokens from Player's account to `SnakeGame` contract
+     * (allowance required). If `transferFrom` transaction succeed, then smart contract mint `snakeAmount` amount
+     * of SNAKE tokens to Player's account, burns received FRUIT tokens and emit an event.
      *
      * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
      *
-     * @param _fruitAmount FRUIT amount that Player wants to swap
+     * @param _fruitAmount FRUIT amount that Player wants to swap from
      */
     function fruitToSnakeSwap(uint256 _fruitAmount) external nonReentrant setPlayer {
-        uint256 snakeAmount = _fruitAmount / FRUIT_SNAKE_RATE;
-        uint256 fruitBalance = i_fruitToken.balanceOf(player);
+        uint256 fruitBalance = s_fruitToken.balanceOf(player);
         // Check if Player's FRUIT balance is enough to swap declared tokens amount
         if (fruitBalance < _fruitAmount) {
             revert SnakeGame__FruitTokensBalanceTooLow(fruitBalance, _fruitAmount);
         }
-        // Transfer FRUIT tokens to `SnakeGame` contract
-        bool transferStatus = i_fruitToken.transferFrom(player, address(this), _fruitAmount);
-        if (!transferStatus) {
-            revert SnakeGame__FruitTokensTransferFailed();
+        // Check if `_fruitAmount` input a multiple of `FRUIT_SNAKE_RATE`
+        // SNAKE amount must be integer, theresofe _fruitAmount has to be: 20, 40, 60 ...
+        if ((_fruitAmount % FRUIT_SNAKE_RATE) != 0) {
+            revert SnakeGame__FruitAmountIncorrect();
         }
+        uint256 snakeAmount = _fruitAmount / FRUIT_SNAKE_RATE;
+
+        // Transfer FRUIT tokens to `SnakeGame` contract
+        s_fruitToken.transferFrom(player, address(this), _fruitAmount);
         // Mint SNAKE tokens for Player's account
-        i_snakeToken.mint(player, snakeAmount);
+        s_snakeToken.mint(player, snakeAmount);
         // Burn FRUIT tokens transfered to `SnakeGame` contract
-        i_fruitToken.burn(_fruitAmount);
+        s_fruitToken.burn(_fruitAmount);
         emit FruitsToSnakeSwapped(player, _fruitAmount, snakeAmount);
     }
 
@@ -538,18 +493,17 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @dev Function allows Player to claim previously unlocked `Snake NFT` awards. The number of `Snake NFTs` to claim
      * is stored in `snakeNftsToClaim` parameter. Player can choose in front-end application how many of avaliable NFTs he wants to
      * claim. Function gets `_snakeNftAmount` imput parameter, which can't be more than `snakeNftsToClaim` parameter.
-     * There is a mint fee in FRUIT tokens required to mint `Snake NFT`, which is stored in constant variable `FRUIT_MINT_FEE_SNAKE_NFT`.
+     * There is a mint fee in FRUIT tokens required to mint `Snake NFT`, which is stored in constant variable `FRUIT_MINT_FEE`.
      * The maximum number of `Snake NFTs` possible to mint by one Player in the game is stored in constant variable `MAX_SNAKE_NFTS`.
      *
      * Function is called by the Player, using front-end application.
      *
      * Function mint `_snakeNftAmount` number of `Snake NFTs` in the FOR loop.
      * Inside FOR loop function checks, if Player has at least one Snake NFT avaliable to claim, by testing `snakeNftsToClaim` parameter.
-     * If there is none, then transaction reverts. After that function checks, if `fruitBalance` is enough to pay mint fee `FRUIT_MINT_FEE_SNAKE_NFT`.
+     * If there is none, then transaction reverts. After that function checks, if `fruitBalance` is enough to pay mint fee `FRUIT_MINT_FEE`.
      * If not, then transaction reverts. Then function transfer FRUIT tokens from Player's account to `SnakeGame` contract (allowance required).
-     * If `transferFrom` transaction failed, then transaction reverts. If `transferFrom` transaction succeed, then smart contract safe mint
-     * `Snake NFT` to Player's account, with randomly choosen URI from URI's array. Finally smart contract burns received mint fee in FRUIT tokens.
-     * At the end function calls private function `superPetNftClaimCheck` to check Player's `Super Pet NFT` claim eligibility.
+     * If `transferFrom` transaction succeed, then smart contract safe mint`Snake NFT` to Player's account, with randomly choosen URI from URI's array.
+     * Finally smart contract burns received mint fee in FRUIT tokens and emit an event.
      *
      * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
      */
@@ -559,40 +513,28 @@ contract SnakeGame is Ownable, ReentrancyGuard {
                 revert SnakeGame__NoSnakeNftsToClaim();
             }
             // Check if Player has enough FRUIT tokens to pay `Snake NFT` mint fee.
-            uint256 fruitBalance = i_fruitToken.balanceOf(player);
-            if (fruitBalance < FRUIT_MINT_FEE_SNAKE_NFT) {
-                revert SnakeGame__FruitTokensBalanceTooLow(fruitBalance, FRUIT_MINT_FEE_SNAKE_NFT);
+            uint256 fruitBalance = s_fruitToken.balanceOf(player);
+            if (fruitBalance < FRUIT_MINT_FEE) {
+                revert SnakeGame__FruitTokensBalanceTooLow(fruitBalance, FRUIT_MINT_FEE);
             }
-            // Transfer FRUIT tokens to `SnakeGame` contract
-            bool transferStatus = i_fruitToken.transferFrom(player, address(this), FRUIT_MINT_FEE_SNAKE_NFT);
-            if (!transferStatus) {
-                revert SnakeGame__FruitTokensTransferFailed();
-            }
+            // Transfer FRUIT tokens mint fee to `SnakeGame` contract
+            s_fruitToken.transferFrom(player, address(this), FRUIT_MINT_FEE);
             // Random choice of `Snake NFT` URI's array index
-            uint256 snakeNftUriIndex = randomNumber(i, i_snakeNftData.uris.length);
+            uint256 snakeNftUriIndex = randomNumber(i, s_snakeNft.getNftUrisArrayLength());
+
             // Safe mint of `Snake NFT` token
             s_players[player].snakeNftsToClaim--;
-            i_snakeNft.safeMint(player, snakeNftUriIndex);
-            s_stats[player].snakeNftsClaimed += 1;
+            s_snakeNft.safeMint(player, snakeNftUriIndex);
+            s_stats[player].snakeNftsAmount++;
             // Burn FRUIT tokens mint fee transfered to `SnakeGame` contract
-            i_fruitToken.burn(FRUIT_MINT_FEE_SNAKE_NFT);
+            s_fruitToken.burn(FRUIT_MINT_FEE);
         }
-        // Check and update `Super Pet NFT` claim eligibility
-        bool superNftClaimFlag = s_players[player].superNftClaimFlag;
-        uint256 superPetNftsClaimed = s_stats[player].superPetNftsClaimed;
-        if (superPetNftsClaimed < MAX_SUPER_NFTS) {
-            uint256 snakeNftBalance = i_snakeNft.balanceOf(player);
-            if (superNftClaimFlag == false && snakeNftBalance >= SNAKE_NFTS_REQUIRED) {
-                s_players[player].superNftClaimFlag = true;
-                emit SuperPetNftUnlocked(player);
-            }
-        } else {
-            emit MaxSuperPetNftsClaimed(player);
-        }
+        emit SnakeNftsClaimed(player, _snakeNftAmount);
     }
 
     /**
-     * @dev Function checks Player's `Super Pet NFT` claim eligibility.
+     * @notice Function checks Player's `Super Pet NFT` claim eligibility.
+     * @dev External function to check Player's `Super Pet NFT` claim eligibility.
      *
      * Function is called by the Player, using front-end application.
      *
@@ -603,17 +545,17 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      *
      * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
      */
-    function checkSuperPetNftClaim() external nonReentrant setPlayer {
+    function checkSuperNftClaim() external nonReentrant setPlayer {
+        uint256 superNftsAmount = s_stats[player].superNftsAmount;
         bool superNftClaimFlag = s_players[player].superNftClaimFlag;
-        uint256 superPetNftsClaimed = s_stats[player].superPetNftsClaimed;
-        if (superPetNftsClaimed < MAX_SUPER_NFTS) {
-            uint256 snakeNftBalance = i_snakeNft.balanceOf(player);
+        if (superNftsAmount < MAX_SUPER_NFTS) {
+            uint256 snakeNftBalance = s_snakeNft.balanceOf(player);
             if (superNftClaimFlag == false && snakeNftBalance >= SNAKE_NFTS_REQUIRED) {
                 s_players[player].superNftClaimFlag = true;
-                emit SuperPetNftUnlocked(player);
+                emit SuperNftUnlocked(player);
             }
         } else {
-            emit MaxSuperPetNftsClaimed(player);
+            emit MaxSuperNftsClaimed(player);
         }
     }
 
@@ -621,7 +563,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @notice Claim unlocked `Super Pet NFT` award.
      * @dev Function allows Player to claim previously unlocked `Super Pet NFT` award. Information about unlocked `Super Pet NFT` is stored
      * in `superNftClaimFlag` parameter. There is a mint fee in FRUIT tokens in the amount stored in constant variable `FRUIT_MINT_FEE_SUPER_NFT`.
-     * There is also a mint fee in ETH in the amount stored in constant variable `ETH_MINT_FEE_SUPER_NFT`. Finally there is also requirement
+     * There is also a mint fee in ETH in the amount stored in constant variable `ETH_MINT_FEE`. Finally there is also requirement
      * to have `Snake NFTs` in the amount stored in `SNAKE_NFTS_REQUIRED` to burn them as a mint fee.
      * The maximum number of `Super Pet NFTs` possible to mint by one Player in the game is stored in constant variable `MAX_SUPER_NFTS`.
      *
@@ -629,53 +571,46 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      *
      * Function check, if Player has `Super Pet NFT` avaliable to claim by testing `superNftClaimFlag` parameter. If not, then transaction
      * reverts. Then function check, if Player has sent enough ETH with transaction call to pay ETH mint fee. If not, then transaction
-     * reverts. Then function check, if Player has enough FRUIT balance to be able to pay FRUIT mint fee. If not, then transaction reverts.
-     * And then function check, if Player has enough `Snake NFT` balance to let the contract burn it as an additional mint fee.
-     * If all conditions above are met, then smart contract make FRUIT mint fee transfer (allowance is required).
-     * After that smart contract burn `SNAKE_NFTS_REQUIRED` amount of `Snake NFT` from Player's account as an additional mint fee.
-     * And then finally smart contract mint `Super Pet NFT` to Player's account, with randomly chosen URI from URI's array. Finally smart
-     * contract burns received mint fee in FRUIT tokens.
-     * At the end function calls private function `superPetNftClaimCheck` to check Player's `Super Pet NFT` claim eligibility.
+     * reverts. And then function check, if Player has enough `Snake NFT` balance to let the contract burn it as an additional mint fee.
+     * If all conditions above are met smart contract burn `SNAKE_NFTS_REQUIRED` amount of `Snake NFT` from Player's account as an additional
+     * mint fee. And then smart contract mint `Super Pet NFT` to Player's account, with randomly chosen URI from URI's array. Finally function
+     * emit an event.
      *
      * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
      */
     function superPetNftClaim() external payable nonReentrant setPlayer {
         // Check if Player has Super Pet NFT to claim
         if (s_players[player].superNftClaimFlag != true) {
-            revert SnakeGame__NoSuperPetNftToClaim();
+            revert SnakeGame__NoSuperNftToClaim();
         }
         // Check if Player has sent enough ETH with function call, to pay `Super Pet NFT` mint fee.
-        if (msg.value < ETH_MINT_FEE_SUPER_NFT) {
-            revert SnakeGame__NotEnoughEthSent(msg.value, ETH_MINT_FEE_SUPER_NFT);
-        }
-        // Check if Player has enough FRUIT tokens to pay `Super Pet NFT` mint fee.
-        uint256 fruitBalance = i_fruitToken.balanceOf(player);
-        if (fruitBalance < FRUIT_MINT_FEE_SUPER_NFT) {
-            revert SnakeGame__FruitTokensBalanceTooLow(fruitBalance, FRUIT_MINT_FEE_SUPER_NFT);
+        if (msg.value < ETH_MINT_FEE) {
+            revert SnakeGame__NotEnoughEthSent(msg.value, ETH_MINT_FEE);
         }
         // Check if Player has enough `Snake NFTs` to pay `Super Pet NFT` mint fee (burn `Snake NFTs`)
-        uint256 snakeNftBalance = i_snakeNft.balanceOf(player);
+        uint256 snakeNftBalance = s_snakeNft.balanceOf(player);
         if (snakeNftBalance < SNAKE_NFTS_REQUIRED) {
             revert SnakeGame__SnakeNftBalanceTooLow(snakeNftBalance, SNAKE_NFTS_REQUIRED);
         }
-        // Transfer FRUIT tokens to `SnakeGame` contract
-        bool transferStatus = i_fruitToken.transferFrom(player, address(this), FRUIT_MINT_FEE_SUPER_NFT);
-        if (!transferStatus) {
-            revert SnakeGame__FruitTokensTransferFailed();
-        }
         // Burn required amount of `Snake NFTs` as `Super Pet NFT` mint fee.
+        // Get `Snake NFTs` tokenIds loop
+        uint256[SNAKE_NFTS_REQUIRED] memory burnTokenIds;
         for (uint256 i; i < SNAKE_NFTS_REQUIRED; i++) {
-            uint256 burnSnakeNftTokenId = i_snakeNft.tokenOfOwnerByIndex(player, i);
-            i_snakeNft.burn(burnSnakeNftTokenId);
+            burnTokenIds[i] = s_snakeNft.tokenOfOwnerByIndex(player, i);
+            // console.log("SOL: burnSnakeNftTokenId:", burnTokenIds[i]);
+        }
+        // Burn `Snake NFTs` loop
+        for (uint256 i; i < SNAKE_NFTS_REQUIRED; i++) {
+            s_snakeNft.burn(burnTokenIds[i]);
+            // console.log("SOL: Burn NFT at tokenId:", burnTokenIds[i]);
         }
         // Random choice of `Super Pet NFT` URI's array index
-        uint256 superNftUriIndex = randomNumber(33, i_superPetNftData.uris.length);
+        uint256 superNftUriIndex = randomNumber(33, s_superPetNft.getNftUrisArrayLength());
         // Safe mint of `Super Pet NFT` token
         s_players[player].superNftClaimFlag = false;
-        i_superPetNft.safeMint(player, superNftUriIndex);
-        s_stats[player].superPetNftsClaimed += 1;
-        // Burn FRUIT tokens transfered to contract
-        i_fruitToken.burn(FRUIT_MINT_FEE_SUPER_NFT);
+        s_superPetNft.safeMint(player, superNftUriIndex);
+        s_stats[player].superNftsAmount++;
+        emit SuperNftClaimed(player);
     }
 
     ///////////////////////
@@ -690,8 +625,9 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      *
      * @return Discount to game credit price.
      */
-    function gameCreditPriceReducer() private view returns (uint256) {
-        uint256 superPetNftBalance = i_superPetNft.balanceOf(player);
+    function gameCreditPriceReducer() public view returns (uint256) {
+        uint256 superPetNftBalance = s_superPetNft.balanceOf(player);
+        // console.log("SOL: superPetNftBalance:", superPetNftBalance);
         if (superPetNftBalance >= 3) return 4;
         if (superPetNftBalance == 2) return 3;
         if (superPetNftBalance == 1) return 2;
@@ -712,54 +648,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     function randomNumber(uint256 _index, uint256 _range) private view returns (uint256) {
         uint256 random = uint256(keccak256(abi.encodePacked(_index, block.difficulty, block.timestamp))) % _range;
         return random;
-    }
-
-    /**
-     * @dev Function checks Player's `Snake NFT` claim eligibility.
-     *
-     * Private function for internal use. Can ONLY be called by this `SnakeGame` contract.
-     *
-     * Function checks, if Player did not already claimed maximum number of `Snake NFTs`. Then function checks,
-     * if given parameter `score` is more than constant variable `SCORE_TO_CLAIM_SNAKE_NFT`. If yes, then
-     * function unlocks one `Snake NFT` for Player to be minted and emit an event.
-     * If Player already claimed maximum number of `Snake NFTs`, no more `Snake NFTs` will unlock anymore.
-     *
-     * @param _score number of points gained by Player in the last game
-     */
-    function snakeNftClaimCheck(uint256 _score) private {
-        uint256 snakeNftsClaimed = s_stats[player].snakeNftsClaimed;
-        if (snakeNftsClaimed < MAX_SNAKE_NFTS) {
-            if (_score >= SCORE_TO_CLAIM_SNAKE_NFT) {
-                s_players[player].snakeNftsToClaim++;
-                emit SnakeNftUnlocked(player);
-            }
-        } else {
-            emit MaxSnakeNftsClaimed(player);
-        }
-    }
-
-    /**
-     * @dev Function checks Player's `Super Pet NFT` claim eligibility.
-     *
-     * Private function for internal use. Can ONLY be called by this `SnakeGame` contract.
-     *
-     * Function checks, if Player did not already claimed maximum number of `Super Pet NFTs`. Then function checks,
-     * if Player didn't already unlock `Super Pet NFT` and if number of `Snake NFTs` is at least `SNAKE_NFTS_REQUIRED`.
-     * If yes, then function unlocks one `Super Pet NFT` and emit an event.
-     * If Player already claimed maximum number of `Super Pet NFTs`, no more `Super Pet NFTs` will unlock anymore.
-     */
-    function superPetNftClaimCheck() private {
-        bool superNftClaimFlag = s_players[player].superNftClaimFlag;
-        uint256 superPetNftsClaimed = s_stats[player].superPetNftsClaimed;
-        if (superPetNftsClaimed < MAX_SUPER_NFTS) {
-            uint256 snakeNftBalance = i_snakeNft.balanceOf(player);
-            if (superNftClaimFlag == false && snakeNftBalance >= SNAKE_NFTS_REQUIRED) {
-                s_players[player].superNftClaimFlag = true;
-                emit SuperPetNftUnlocked(player);
-            }
-        } else {
-            emit MaxSuperPetNftsClaimed(player);
-        }
     }
 
     //////////////////////
@@ -803,104 +691,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * Can be called by anyone and shows current Player public game statistics.
      * @return Public game statistics of any given Player.
      */
-    function getPlayerStats(address _player) public view returns (PlayerStats memory) {
-        return s_stats[_player];
-    }
-
-    /**
-     * @dev Getter function to get this smart contract address.
-     * @return This smart contract address.
-     */
-    function getCurrentPlayerAddress() public view returns (address) {
-        return player;
-    }
-
-    /**
-     * @dev Getter function to get score required to mint NFT.
-     * @return Required game score to claim `Snake NFT`.
-     */
-    function getScoreToClaimNft() public pure returns (uint256) {
-        return SCORE_TO_CLAIM_SNAKE_NFT;
-    }
-
-    /**
-     * @dev Getter function to get amount of SNAKE airdrop.
-     * @return SNAKE_AIRDROP_AMOUNT amount of SNAKE airdrop
-     */
-    function getSnakeAirdropAmount() external view returns (uint256) {
-        return SNAKE_AIRDROP_AMOUNT;
-    }
-
-    /**
-     * @dev Getter function to get game credit fee amount.
-     * @return GAME_CREDIT_BASE_FEE game credit fee amount
-     */
-    function getGameCreditPrice() external view returns (uint256) {
-        return GAME_CREDIT_PRICE;
-    }
-
-    /**
-     * @dev Getter function to get ETH to SNAKE exchange rate.
-     * @return ETH to Snake exchange rate
-     */
-    function getSnakeEthRate() external pure returns (uint256) {
-        return SNAKE_ETH_RATE;
-    }
-
-    /**
-     * @dev Getter function to get FRUIT to SNAKE exchange rate.
-     * @return FRUIT to Snake exchange rate
-     */
-    function getFruitSnakeRate() external pure returns (uint256) {
-        return FRUIT_SNAKE_RATE;
-    }
-
-    /**
-     * @dev Getter function to get maximum amount of `Snake NFTs` avaliable to claim in the game.
-     * @return Maximum number of `Snake NFTs` claim
-     */
-    function getMaxSnakeNftsClaim() public pure returns (uint256) {
-        return MAX_SNAKE_NFTS;
-    }
-
-    /**
-     * @dev Getter function to get maximum amount of `Super Pet NFTs` avaliable to claim in the game.
-     * @return Maximum number of `Super Pet NFTs` claim
-     */
-    function getMaxSuperPetNftsClaim() public pure returns (uint256) {
-        return MAX_SUPER_NFTS;
-    }
-
-    /**
-     * @dev Getter function to get FRUIT mint fee required to mint `Snake NFT`.
-     * @return FRUIT mint fee required to claim `Snake NFT`.
-     */
-    function getFruitMintFeeSnakeNft() external pure returns (uint256) {
-        return FRUIT_MINT_FEE_SNAKE_NFT;
-    }
-
-    /**
-     * @dev Getter function to get FRUIT mint fee required to mint `Super Pet NFT`.
-     * @return FRUIT mint fee required to claim `Super Pet NFT`.
-     */
-    function getFruitMintFeeSuperNft() external pure returns (uint256) {
-        return FRUIT_MINT_FEE_SUPER_NFT;
-    }
-
-    /**
-     * @dev Getter function to get ETH mint fee in required to mint `Super Pet NFT`.
-     * @return ETH mint fee required to claim `Super Pet NFT`.
-     */
-    function getSuperNftMintFeeEth() external pure returns (uint256) {
-        return ETH_MINT_FEE_SUPER_NFT;
-    }
-
-    /**
-     * @dev Getter function to get number of Snake NFTs required for claim `Super Pet NFT`.
-     * @return Number of `Snake NFTs` required to claim `Super Pet NFT`.
-     */
-    function getSnakeNftsRequired() external pure returns (uint8) {
-        return SNAKE_NFTS_REQUIRED;
+    function getPlayerStats() public view returns (PlayerStats memory) {
+        return s_stats[msg.sender];
     }
 
     /**
@@ -937,19 +729,19 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @notice Receive ETH
      * @dev Function allows to receive ETH sent to smart contract.
-     * This contract allows to receive ETH transfers, thererfore `receive` function does't revert
-     * unintended ETH transfers.
      */
     receive() external payable {
-        emit ethTransferReceived(msg.value);
+        // console.log("Function `receive` invoked");
+        emit EthTransferReceived(msg.value);
     }
 
     /**
      * @notice Fallback function
-     * @dev Function executes if none of the contract functions match the intended function calls.
-     * Function reverts transaction if called function is not found in the contract.
+     * @dev Function executes if none of the contract functions (function selector) match the intended
+     * function calls.
      */
     fallback() external payable {
-        revert SnakeGame__InvalidFunctionCall();
+        // console.log("Function `fallback` invoked");
+        emit EthTransferReceived(msg.value);
     }
 }

@@ -36,15 +36,11 @@ error Nft__AlreadyInitialized();
  * This means, that ONLY owner will be authorized to call some sensitive contract functions like `mint` or `burn`,
  * which can be obtained by using `onlyOwner` modifier for these functions.
  *
- * `Nft` contract is used for creation of two ERC-721 non-fungible game utility tokens: `Snake NFT [SNFT]` and `Super Pet NFT [SPET]`.
- * Both tokens are burnable and mintable, but this functionalities are restricted to use only for contract `owner`, which in our game
- * is `SnakeGame` contract.
- *
  * Smart contract functions:
  * Init functions: _initializeContract
  * Main functions: safeMint
- * Getter functions: getAnyPlayerNfts, getLatestNftTokenId, getNftUris, getInitialized
- * Overriden functions: _burn, tokenURI
+ * Getter functions: getNftUris, getNftUrisArrayLength, getInitialized, getLatestTokenId
+ * Overriden functions: _burn, tokenURI, supportsInterface, _beforeTokenTransfer
  * Other functions: receive, fallback
  */
 contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Ownable {
@@ -58,7 +54,7 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
     Counters.Counter private s_tokenIdCounter;
 
     /// @dev Array of all avaliable token uris.
-    string[] private s_uris;
+    string[] internal s_uris;
 
     /// @dev Contract initialization flag.
     bool private s_initialized;
@@ -91,9 +87,9 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
      * @param _uris token URI's array
      */
     function _initializeContract(string[] memory _uris) private {
-        if (s_initialized) {
-            revert Nft__AlreadyInitialized();
-        }
+        // if (s_initialized) {
+        //     revert Nft__AlreadyInitialized();
+        // }
         s_uris = _uris;
         s_initialized = true;
     }
@@ -111,8 +107,8 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
      * @param _uriIndex `s_uris` array index
      */
     function safeMint(address _to, uint256 _uriIndex) external onlyOwner {
-        s_tokenIdCounter.increment();
         uint256 newTokenId = s_tokenIdCounter.current();
+        s_tokenIdCounter.increment();
         _safeMint(_to, newTokenId);
         _setTokenURI(newTokenId, s_uris[_uriIndex]);
     }
@@ -122,30 +118,27 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
     //////////////////////
 
     /**
-     * @notice Function checks how many this NFT tokens have been already minted at all.
-     * @dev Getter function to get tokenId of latest minted token, which is simultaneously
-     * the number of all this NFT tokens that have been already minted at all.
-     * @return Public `tokenId` (number of minted tokens) parameter.
+     * @dev Getter function to get token URI of given index from token URI's array.
+     * @param _index URI's array index
+     * @return Value of token URI of given index from token URI's array
      */
-    function getLatestNftTokenId() public view returns (uint256) {
-        return (s_tokenIdCounter.current());
-    }
-
-    /**
-     * @dev Internal getter function to get token URI parameter of given array index.
-     * Function can ONLY be called by the `owner`, which is smart contract `GameTokens`.
-     * @param _index index of `s_uris` array element
-     * @return Private URI parameter of given array index.
-     */
-    function getNftUris(uint256 _index) internal view onlyOwner returns (string memory) {
+    function getNftUris(uint256 _index) public view returns (string memory) {
         return s_uris[_index];
     }
 
     /**
-     * @notice Function to check, if token contract is initialized correctly.
+     * @dev Getter function to get length of token URIs array.
+     * @return Public value of token URIs array length.
+     */
+    function getNftUrisArrayLength() public view returns (uint256) {
+        return s_uris.length;
+    }
+
+    /**
+     * @notice Function checks, if token contract is initialized properly.
      * @dev Getter function to get value of bool variable `s_initialized`, which indicates
-     * if token contract is initialized correctly.
-     * @return Public `s_initialized` variable to check `Nft` contract initialization status.
+     * if token contract is initialized properly.
+     * @return Status of `Nft` contract initialization.
      */
     function getInitialized() public view returns (bool) {
         return s_initialized;
@@ -169,17 +162,16 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
      * @dev Function overrides ERC721 and ERC721URIStorage libraries functions
      * @param _tokenId unique id of new minted token
      */
-    function tokenURI(uint256 _tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
-        return super.tokenURI(_tokenId);
-    }
+    function tokenURI(uint256 _tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {}
 
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, ERC721) returns (bool) {
-        return interfaceId == type(IERC721Enumerable).interfaceId || super.supportsInterface(interfaceId);
-    }
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, ERC721) returns (bool) {}
 
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
     function _beforeTokenTransfer(
         address from,
         address to,
