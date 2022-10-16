@@ -1,6 +1,5 @@
 const { network, deployments, ethers, getNamedAccounts } = require("hardhat");
 const { assert, expect } = require("chai");
-
 const { developmentChains } = require("../../helper-hardhat-config");
 
 !developmentChains.includes(network.name)
@@ -141,16 +140,6 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await snakeGame.gameOver(gameScore);
                   const gamesPlayed = (await snakeGame.getPlayerStats()).gamesPlayed.toString();
                   assert.equal(gamesPlayed, 1);
-              });
-              it("adds score to parameter `fruitsCollected`", async () => {
-                  await snakeGame.snakeAirdrop();
-                  await snakeToken.approve(snakeGame.address, 1000);
-                  await snakeGame.buyCredits(2);
-                  await snakeGame.gameStart();
-                  const gameScore = 100;
-                  await snakeGame.gameOver(gameScore);
-                  const fruitsCollected = (await snakeGame.getPlayerStats()).fruitsCollected.toString();
-                  assert.equal(fruitsCollected, gameScore);
               });
               it("sets parameter `lastScore` to given parameter `score` value", async () => {
                   await snakeGame.snakeAirdrop();
@@ -365,14 +354,24 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   // console.log("fruitBalance:", fruitBalance.toString());
                   assert.equal(fruitBalance, score);
               });
-              it("emits event after FRUIT tokens receive", async () => {
+              it("adds score to parameter `fruitsCollected`", async () => {
                   await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
                   await snakeToken.approve(snakeGame.address, 5);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
                   await snakeGame.gameOver(score);
-                  await expect(snakeGame.fruitClaim()).to.emit(snakeGame, "FruitTokensClaimed").withArgs(deployer, score);
+                  const fruitsCollected = (await snakeGame.getPlayerStats()).fruitsCollected.toString();
+                  assert.equal(fruitsCollected, gameScore);
+              });
+              it("emits event after FRUIT tokens collect", async () => {
+                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
+                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buyCredits(1);
+                  await snakeGame.gameStart();
+                  const score = 100;
+                  await snakeGame.gameOver(score);
+                  await expect(snakeGame.fruitClaim()).to.emit(snakeGame, "FruitTokensCollected").withArgs(deployer, score);
               });
           });
 

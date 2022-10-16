@@ -96,7 +96,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     event SnakeAirdropReceived(address indexed player, uint256 indexed snakeAmount);
     event SnakeTokensBought(address indexed player, uint256 indexed snakeAmount);
     event CreditsBought(address indexed player, uint256 indexed creditsAmount);
-    event FruitTokensClaimed(address indexed player, uint256 indexed fruitAmount);
+    event FruitTokensCollected(address indexed player, uint256 indexed fruitAmount);
     event FruitsToSnakeSwapped(address indexed player, uint256 indexed fruitAmount, uint256 indexed snakeAmount);
     event SnakeNftsClaimed(address indexed player, uint256 indexed snakeNftsAmount);
     event SuperNftClaimed(address indexed player);
@@ -304,7 +304,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         s_players[player].gameStartedFlag = false;
         // Player's game statistics update
         s_stats[player].gamesPlayed++;
-        s_stats[player].fruitsCollected += _score;
         // Set lastScore and bestScore
         s_stats[player].lastScore = _score;
         if (_score > s_stats[player].bestScore) {
@@ -423,8 +422,9 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * Function is called by the Player, using front-end application.
      *
      * Function checks, if Player has at least one FRUIT token to claim. If not, then reverts with an error message.
-     * If yes, then smart contract mint FRUIT tokens to Player's account in amount equal to value of `fruitToClaim`
-     * parameter. Then function reset `fruitToClaim` parameter to 0 and emit an event.
+     * If yes, then function reset `fruitToClaim` parameter to 0 and smart contract mint FRUIT tokens to Player's
+     * account in amount equal to value of `fruitToClaim` parameter. Finally function adds `fruitAmount` to
+     * `fruitsCollected` parameter and emit an event.
      *
      * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
      */
@@ -437,7 +437,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         // Mint FRUIT tokens to Player's account
         s_players[player].fruitToClaim = 0;
         s_fruitToken.mint(player, fruitAmount);
-        emit FruitTokensClaimed(player, fruitAmount);
+        s_stats[player].fruitsCollected += fruitAmount;
+        emit FruitTokensCollected(player, fruitAmount);
     }
 
     /**
@@ -474,7 +475,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
             revert SnakeGame__FruitAmountIncorrect();
         }
         uint256 snakeAmount = _fruitAmount / FRUIT_SNAKE_RATE;
-
         // Transfer FRUIT tokens to `SnakeGame` contract
         s_fruitToken.transferFrom(player, address(this), _fruitAmount);
         // Mint SNAKE tokens for Player's account
