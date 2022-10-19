@@ -16,10 +16,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
               // Get contract: SnakeGame
               snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeNft
-              snakeNftAddress = await snakeGame.s_snakeNft();
+              snakeNftAddress = await snakeGame.i_snakeNft();
               snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
               // Get contract: SuperPetNft
-              superPetNftAddress = await snakeGame.s_superPetNft();
+              superPetNftAddress = await snakeGame.i_superPetNft();
               superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
           });
 

@@ -14,22 +14,22 @@ const { developmentChains } = require("../../helper-hardhat-config");
               // Get contract: SnakeGame
               snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeToken
-              snakeTokenAddress = await snakeGame.s_snakeToken();
+              snakeTokenAddress = await snakeGame.i_snakeToken();
               snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
               // Get contract: FruitToken
-              fruitTokenAddress = await snakeGame.s_fruitToken();
+              fruitTokenAddress = await snakeGame.i_fruitToken();
               fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
               // Get contract: SnakeNft
-              snakeNftAddress = await snakeGame.s_snakeNft();
+              snakeNftAddress = await snakeGame.i_snakeNft();
               snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
               // Get contract: SuperPetNft
-              superPetNftAddress = await snakeGame.s_superPetNft();
+              superPetNftAddress = await snakeGame.i_superPetNft();
               superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
           });
 
           describe("constructor", async () => {
               it("creates `SnakeToken` contract instance properly", async () => {
-                  const snakeTokenAddress = await snakeGame.s_snakeToken();
+                  const snakeTokenAddress = await snakeGame.i_snakeToken();
                   const snakeTokenName = await snakeToken.name();
                   const snakeTokenSymbol = await snakeToken.symbol();
                   assert.equal(snakeToken.address, snakeTokenAddress);
@@ -37,7 +37,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(snakeTokenSymbol, "SNAKE");
               });
               it("creates `FruitToken` contract instance properly", async () => {
-                  const fruitTokenAddress = await snakeGame.s_fruitToken();
+                  const fruitTokenAddress = await snakeGame.i_fruitToken();
                   const fruitTokenName = await fruitToken.name();
                   const fruitTokenSymbol = await fruitToken.symbol();
                   assert.equal(fruitTokenAddress, fruitToken.address);
@@ -45,7 +45,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(fruitTokenSymbol, "FRUIT");
               });
               it("creates `SnakeNft` contract instance properly", async () => {
-                  const snakeNftAddress = await snakeGame.s_snakeNft();
+                  const snakeNftAddress = await snakeGame.i_snakeNft();
                   const snakeNftName = await snakeNft.name();
                   const snakeNftSymbol = await snakeNft.symbol();
                   const snakeNftUriZero = await snakeNft.getNftUris(0);
@@ -61,7 +61,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(isInitialized, true);
               });
               it("creates `SuperPetNft` contract instance properly", async () => {
-                  const superPetNftAddress = await snakeGame.s_superPetNft();
+                  const superPetNftAddress = await snakeGame.i_superPetNft();
                   const superPetNftName = await superPetNft.name();
                   const superPetNftSymbol = await superPetNft.symbol();
                   const superPetNftUriZero = await superPetNft.getNftUris(0);
@@ -173,8 +173,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await expect(snakeGame.gameOver(gameScore)).to.emit(snakeGame, "GameOver").withArgs(deployer);
               });
               it("increments parameter `snakeNftsToClaim` by one", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // Bought SNAKE: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // Bought SNAKE: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // Game credits bought: 1
                   await snakeGame.gameStart();
                   const score = 100;
@@ -186,8 +186,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(snakeNftsToClaimAfterCheck.toString(), 1);
               });
               it("emits event after parameter `snakeNftsToClaim` incrementation`", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // Bought SNAKE: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // Bought SNAKE: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // Game credits bought: 1
                   await snakeGame.gameStart();
                   const score = 100;
@@ -200,24 +200,29 @@ const { developmentChains } = require("../../helper-hardhat-config");
               it("emits event when maximum number of `Snake NFTs` already claimed", async () => {
                   const maxSnakeNfts = await snakeGame.MAX_SNAKE_NFTS();
                   // console.log("maxSnakeNfts:", maxSnakeNfts.toString());
-                  // Play `maxSnakeNfts` x `Snake Game`
+                  // Play `maxSnakeNfts` times `Snake Game`
                   for (let i = 0; i < maxSnakeNfts; i++) {
-                      await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // Bought SNAKE: 5
-                      await snakeToken.approve(snakeGame.address, 5);
+                      await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // Bought SNAKE: 4
+                      await snakeToken.approve(snakeGame.address, 4);
                       await snakeGame.buyCredits(1); // Game credits bought: 1
                       await snakeGame.gameStart();
                       await snakeGame.gameOver(100); // Game score: 100
                   }
-                  // const snakeNftsToClaim = (await snakeGame.getPlayerData()).snakeNftsToClaim;
+                  const snakeNftsToClaim = (await snakeGame.getPlayerData()).snakeNftsToClaim;
+                  const fruitMintFee = await snakeGame.FRUIT_MINT_FEE();
                   // console.log("snakeNftsToClaim:", snakeNftsToClaim.toString());
                   await snakeGame.fruitClaim();
-                  await fruitToken.approve(snakeGame.address, 3000);
-                  await snakeGame.snakeNftClaim(maxSnakeNfts);
+                  await fruitToken.approve(snakeGame.address, snakeNftsToClaim * fruitMintFee);
+                  // `Snake NFT` claim: maxSnakeNfts
+                  for (let i = 0; i < maxSnakeNfts; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   // const snakeNftsAmount = (await snakeGame.getPlayerStats()).snakeNftsAmount;
                   // console.log("snakeNftsAmount:", snakeNftsAmount.toString());
+                  //
                   // Play `Snake Game` one more time
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // Bought SNAKE: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // Bought SNAKE: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // Game credits bought: 1
                   await snakeGame.gameStart();
                   const score = 100;
@@ -253,7 +258,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   // const snakeEthRate = await snakeGame.SNAKE_ETH_RATE();
                   // const expectedEthPayment = snakeToBuy * snakeEthRate;
                   // console.log("expectedEthPayment:", (expectedEthPayment / 1e18).toString());
-                  const ethPayment = ethers.utils.parseEther("0.05"); // 0.05 ETH
+                  const ethPayment = ethers.utils.parseEther("0.03"); // 0.03 ETH
                   // console.log("ethPayment:", (ethPayment / 1e18).toString());
                   await expect(snakeGame.buySnake(snakeToBuy, { value: ethPayment.toString() })).to.be.revertedWith(
                       "SnakeGame__NotEnoughEthSent"
@@ -286,18 +291,18 @@ const { developmentChains } = require("../../helper-hardhat-config");
               });
               it("transfers sold SNAKE tokens from Player's account to smart contract account", async () => {
                   creditsAmount = 1;
-                  await snakeGame.buySnake(10, { value: ethers.utils.parseEther("0.1") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(8, { value: ethers.utils.parseEther("0.08") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(creditsAmount);
                   const deployerSnakeBalance = await snakeToken.balanceOf(deployer);
                   const contractSnakeBalance = await snakeToken.balanceOf(snakeGame.address);
-                  assert.equal(deployerSnakeBalance.toString(), 5);
+                  assert.equal(deployerSnakeBalance.toString(), 4);
                   assert.equal(contractSnakeBalance.toString(), 0); // Tokens burned after transfer
               });
               it("reverts when SNAKE tokens transfer failed", async () => {
                   creditsAmount = 1;
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 4); // Approve less than required
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 2); // Approve less than required
                   await expect(snakeGame.buyCredits(creditsAmount)).to.be.revertedWith("ERC20: insufficient allowance");
               });
               it("burns SNAKE tokens transfered to smart contract account", async () => {
@@ -310,8 +315,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
               });
               it("increments parameter `gameCredits` by number of bought game credits", async () => {
                   creditsAmount = 1;
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(creditsAmount);
                   const gameCredits = (await snakeGame.getPlayerData()).gameCredits;
                   // expect(gameCredits).to.equal(creditsAmount);
@@ -319,8 +324,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
               });
               it("emits event after game credits purchase", async () => {
                   creditsAmount = 1;
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await expect(snakeGame.buyCredits(creditsAmount)).to.emit(snakeGame, "CreditsBought").withArgs(deployer, creditsAmount);
               });
           });
@@ -330,8 +335,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await expect(snakeGame.fruitClaim()).to.be.revertedWith("SnakeGame__NoFruitTokensToClaim");
               });
               it("reset parameter `fruitToClaim` to value 0", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100);
@@ -343,8 +348,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(fruitToClaim, 0);
               });
               it("mint claimed FRUIT tokens to Player's account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
@@ -355,18 +360,20 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(fruitBalance, score);
               });
               it("adds score to parameter `fruitsCollected`", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
                   await snakeGame.gameOver(score);
+                  await snakeGame.fruitClaim();
                   const fruitsCollected = (await snakeGame.getPlayerStats()).fruitsCollected.toString();
-                  assert.equal(fruitsCollected, gameScore);
+                  // console.log("fruitsCollected:", fruitsCollected);
+                  assert.equal(fruitsCollected, score);
               });
               it("emits event after FRUIT tokens collect", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
@@ -381,8 +388,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await expect(snakeGame.fruitToSnakeSwap(fruitAmountToSwap)).to.be.revertedWith("SnakeGame__FruitTokensBalanceTooLow");
               });
               it("reverts when given FRUIT amount to swap is not a multiple of `FRUIT_SNAKE_RATE`", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
@@ -393,8 +400,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await expect(snakeGame.fruitToSnakeSwap(fruitAmountToSwap)).to.be.revertedWith("SnakeGame__FruitAmountIncorrect");
               });
               it("transfers swapped FRUIT tokens to smart contract account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
@@ -411,8 +418,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(contractFruitBalance.toString(), 0); // Tokens burned after transfer
               });
               it("mint claimed FRUIT tokens to Player's account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
@@ -428,8 +435,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(snakeBalance, 1);
               });
               it("burns FRUIT tokens transfered to smart contract account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1);
                   await snakeGame.gameStart();
                   const score = 100;
@@ -442,8 +449,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   expect(contractFruitBalance).to.equal(0);
               });
               it("emits event after FRUIT => SNAKE tokens swap succeed", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") });
-                  await snakeToken.approve(snakeGame.address, 5); // SNAKE bought: 5
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") });
+                  await snakeToken.approve(snakeGame.address, 4); // SNAKE bought: 5
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100); // game score: 100
@@ -460,12 +467,11 @@ const { developmentChains } = require("../../helper-hardhat-config");
 
           describe("snakeNftClaim", async () => {
               it("reverts when Player doesn't have `Snake NFT` to claim", async () => {
-                  const snakeNftsAmount = 1;
-                  await expect(snakeGame.snakeNftClaim(snakeNftsAmount)).to.be.revertedWith("SnakeGame__NoSnakeNftsToClaim");
+                  await expect(snakeGame.snakeNftClaim()).to.be.revertedWith("SnakeGame__NoSnakeNftsToClaim");
               });
               it("reverts when Player doesn't have enough FRUIT tokens to pay mint fee", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // SNAKE bought: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // SNAKE bought: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100); // game score: 100, `Snake NFT` unlocked
@@ -474,19 +480,17 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await snakeGame.fruitToSnakeSwap(20); // swapped 20 FRUIT to 1 SNAKE
                   // const fruitTokenBalance = await fruitToken.balanceOf(deployer);
                   // console.log("fruitTokenBalance:", fruitTokenBalance.toString());
-                  const snakeNftsAmount = 1;
-                  await expect(snakeGame.snakeNftClaim(snakeNftsAmount)).to.be.revertedWith("SnakeGame__FruitTokensBalanceTooLow");
+                  await expect(snakeGame.snakeNftClaim()).to.be.revertedWith("SnakeGame__FruitTokensBalanceTooLow");
               });
               it("transfers FRUIT tokens mint fee to smart contract account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // SNAKE bought: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // SNAKE bought: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100); // game score: 100, `Snake NFT` unlocked
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 100);
-                  const snakeNftsAmount = 1;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  await snakeGame.snakeNftClaim(); // `Snake NFT` claim
                   const deployerFruitBalance = await fruitToken.balanceOf(deployer);
                   const contractFruitBalance = await fruitToken.balanceOf(snakeGame.address);
                   // console.log("deployerFruitBalance:", deployerFruitBalance.toString());
@@ -495,7 +499,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(contractFruitBalance.toString(), 0); // Tokens burned after transfer
               });
               it("decrements parameter `snakeNftsToClaim` by number of claimed `Snake NFTs`", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // SNAKE bought: 5
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // SNAKE bought: 4
                   await snakeToken.approve(snakeGame.address, 10);
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
@@ -504,71 +508,49 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await fruitToken.approve(snakeGame.address, 100);
                   // const snakeNftsToClaimBeforeClaim = (await snakeGame.getPlayerData()).snakeNftsToClaim;
                   // console.log("snakeNftsToClaimBeforeClaim:", snakeNftsToClaimBeforeClaim.toString());
-                  const snakeNftsAmount = 1;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  await snakeGame.snakeNftClaim(); // `Snake NFT` claim
                   const snakeNftsToClaimAfterClaim = (await snakeGame.getPlayerData()).snakeNftsToClaim;
                   // console.log("snakeNftsToClaimAfterClaim:", snakeNftsToClaimAfterClaim.toString());
                   assert.equal(snakeNftsToClaimAfterClaim.toString(), 0);
               });
               it("mint unlocked `Snake NFTs` to Player's account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // SNAKE bought: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // SNAKE bought: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100); // game1 score: 100, 1x `Snake NFT` unlocked
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 100);
-                  const snakeNftsAmount = 1;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  await snakeGame.snakeNftClaim(); // `Snake NFT` claim
                   const snakeNftsBalance = await snakeNft.balanceOf(deployer);
                   // console.log("snakeNftsBalance:", snakeNftsBalance.toString());
                   assert.equal(snakeNftsBalance.toString(), 1);
               });
               it("increments parameter `snakeNftsAmount` by number of claimed `Snake NFTs`", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // SNAKE bought: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // SNAKE bought: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100); // game1 score: 100, 1x `Snake NFT` unlocked
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 100);
-                  const snakeNftsAmount = 1;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  await snakeGame.snakeNftClaim(); // `Snake NFT` claim
                   const snakeNftsClaimedAmount = (await snakeGame.getPlayerStats()).snakeNftsAmount;
                   // console.log("snakeNftsClaimedAmount:", snakeNftsClaimedAmount.toString());
                   assert.equal(snakeNftsClaimedAmount, 1);
               });
               it("burns FRUIT tokens mint fee transfered to smart contract account", async () => {
-                  await snakeGame.buySnake(5, { value: ethers.utils.parseEther("0.05") }); // SNAKE bought: 5
-                  await snakeToken.approve(snakeGame.address, 5);
+                  await snakeGame.buySnake(4, { value: ethers.utils.parseEther("0.04") }); // SNAKE bought: 4
+                  await snakeToken.approve(snakeGame.address, 4);
                   await snakeGame.buyCredits(1); // game credits bought: 1
                   await snakeGame.gameStart();
                   await snakeGame.gameOver(100); // game1 score: 100, 1x `Snake NFT` unlocked
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 100);
-                  const snakeNftsAmount = 1;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  await snakeGame.snakeNftClaim(); // `Snake NFT` claim
                   const contractFruitBalance = await snakeToken.balanceOf(snakeGame.address);
                   // expect(contractFruitBalance).to.equal(0);
                   assert.equal(contractFruitBalance.toString(), 0);
-              });
-              it("claim more than one `Snake NFTs` in FOR loop", async () => {
-                  await snakeGame.buySnake(15, { value: ethers.utils.parseEther("0.15") }); // SNAKE bought: 15
-                  await snakeToken.approve(snakeGame.address, 15);
-                  await snakeGame.buyCredits(3); // game credits bought: 3
-                  await snakeGame.gameStart();
-                  await snakeGame.gameOver(100); // game1 score: 100, 1x `Snake NFT` unlocked
-                  await snakeGame.gameStart();
-                  await snakeGame.gameOver(100); // game2 score: 100, 1x `Snake NFT` unlocked
-                  await snakeGame.gameStart();
-                  await snakeGame.gameOver(100); // game3 score: 100, 1x `Snake NFT` unlocked
-                  await snakeGame.fruitClaim();
-                  await fruitToken.approve(snakeGame.address, 200);
-                  const snakeNftsAmount = 2;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
-                  const snakeNftsBalance = await snakeNft.balanceOf(deployer);
-                  // console.log("snakeNftsBalance:", snakeNftsBalance.toString());
-                  assert.equal(snakeNftsBalance.toString(), 2);
               });
               it("emits event after `Snake NFTs` claim succeed", async () => {
                   await snakeGame.buySnake(15, { value: ethers.utils.parseEther("0.15") }); // SNAKE bought: 15
@@ -583,9 +565,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 300);
                   const snakeNftsAmount = 3;
-                  await expect(snakeGame.snakeNftClaim(snakeNftsAmount))
-                      .to.emit(snakeGame, "SnakeNftsClaimed")
-                      .withArgs(deployer, snakeNftsAmount);
+                  await expect(snakeGame.snakeNftClaim()).to.emit(snakeGame, "SnakeNftsClaimed").withArgs(deployer);
                   // const snakeNftsBalance = await snakeNft.balanceOf(deployer);
                   // console.log("snakeNftsBalance:", snakeNftsBalance.toString());
               });
@@ -593,8 +573,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
 
           describe("checkSuperNftClaim", async () => {
               it("sets parameter `superNftClaimFlag` to value `true` if all conditions met", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -612,8 +592,9 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   // console.log("superNftClaimFlagBeforeCheck:", superNftClaimFlagBeforeCheck);
                   assert(superNftsAmount < maxSuperNfts);
                   assert.equal(superNftClaimFlagBeforeCheck, false);
-                  const snakeNftsAmount = 10;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim(); // `Snake NFT` claim
+                  }
                   const snakeNftBalance = await snakeNft.balanceOf(deployer);
                   const snakeNftsRequired = await snakeGame.SNAKE_NFTS_REQUIRED();
                   // console.log("snakeNftBalance:", snakeNftBalance.toString());
@@ -625,8 +606,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(superNftClaimFlagAfterCheck, true);
               });
               it("emits event after set `superNftClaimFlag` value to `true`", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -635,8 +616,9 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  const snakeNftsAmount = 10;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim(); // `Snake NFT` claim
+                  }
                   // const superNftClaimFlagBeforeCheck = (await snakeGame.getPlayerData()).superNftClaimFlag;
                   // console.log("superNftClaimFlagBeforeCheck:", superNftClaimFlagBeforeCheck);
                   await expect(snakeGame.checkSuperNftClaim()).to.emit(snakeGame, "SuperNftUnlocked").withArgs(deployer);
@@ -654,7 +636,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 4000);
-                  await snakeGame.snakeNftClaim(40); // `Snake NFTs` claim: 40
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 40; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   // Get 3x `Super Pet NFT`
                   for (let i = 0; i < 3; i++) {
                       await snakeGame.checkSuperNftClaim();
@@ -681,26 +666,27 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   await expect(snakeGame.superPetNftClaim()).to.be.revertedWith("SnakeGame__NoSuperNftToClaim");
               });
               it("reverts when Player doesn't sent enough ETH with transaction call to pay mint fee", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
                       await snakeGame.gameStart();
-                      await snakeGame.gameOver(100); // game1 score: 100, 1x `Snake NFT` unlocked
+                      await snakeGame.gameOver(100); // game score: 100, 1x `Snake NFT` unlocked
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  const snakeNftsAmount = 10;
-                  await snakeGame.snakeNftClaim(snakeNftsAmount); // `Snake NFT` claim
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim(); // `Snake NFT` claim
+                  }
                   await snakeGame.checkSuperNftClaim();
                   // const superNftClaimFlag = (await snakeGame.getPlayerData()).superNftClaimFlag;
                   // console.log("superNftClaimFlag:", superNftClaimFlag);
                   await expect(snakeGame.superPetNftClaim()).to.be.revertedWith("SnakeGame__NotEnoughEthSent");
               });
               it("reverts when Player doesn't have enough `Snake NFTs` to burn them as a mint fee", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -709,7 +695,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  await snakeGame.snakeNftClaim(10); // `Snake NFT` claim: 10
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   await snakeGame.checkSuperNftClaim();
                   // const snakeNftBalance = await snakeNft.balanceOf(deployer);
                   // const snakeNftsRequired = await snakeGame.SNAKE_NFTS_REQUIRED();
@@ -727,8 +716,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   ); // ETH mint fee: 0.1 ETH
               });
               it("burn Player's `Snake NFTs` as a `Super Pet NFT` mint fee", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -737,7 +726,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  await snakeGame.snakeNftClaim(10); // `Snake NFT` claim: 10
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   await snakeGame.checkSuperNftClaim();
                   // const snakeNftBalance = await snakeNft.balanceOf(deployer);
                   // console.log("snakeNftBalance:", snakeNftBalance.toString());
@@ -752,8 +744,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(snakeNftBalanceAfterBurn.toString(), 0);
               });
               it("sets parameter `superNftClaimFlag` to value `false`", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -762,7 +754,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  await snakeGame.snakeNftClaim(10); // `Snake NFT` claim: 10
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   await snakeGame.checkSuperNftClaim();
                   // const snakeNftBalance = await snakeNft.balanceOf(deployer);
                   // console.log("snakeNftBalance:", snakeNftBalance.toString());
@@ -777,8 +772,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(superNftClaimFlag, false);
               });
               it("mint unlocked `Super Pet NFT` to Player's account", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -787,7 +782,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  await snakeGame.snakeNftClaim(10); // `Snake NFT` claim: 10
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   await snakeGame.checkSuperNftClaim();
                   // const snakeNftBalance = await snakeNft.balanceOf(deployer);
                   // console.log("snakeNftBalance:", snakeNftBalance.toString());
@@ -802,8 +800,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(superNftBalance, 1);
               });
               it("increments parameter `superNftsAmount` by one`", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -812,7 +810,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  await snakeGame.snakeNftClaim(10); // `Snake NFT` claim: 10
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   await snakeGame.checkSuperNftClaim();
                   // const snakeNftBalance = await snakeNft.balanceOf(deployer);
                   // console.log("snakeNftBalance:", snakeNftBalance.toString());
@@ -827,8 +828,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(superNftsAmount, 1);
               });
               it("emits event after `Snake NFTs` claim succeed", async () => {
-                  await snakeGame.buySnake(50, { value: ethers.utils.parseEther("0.5") }); // SNAKE bought: 50
-                  await snakeToken.approve(snakeGame.address, 50);
+                  await snakeGame.buySnake(40, { value: ethers.utils.parseEther("0.4") }); // SNAKE bought: 40
+                  await snakeToken.approve(snakeGame.address, 40);
                   await snakeGame.buyCredits(10); // game credits bought: 10
                   // Play the game 10x
                   for (let i = 0; i < 10; i++) {
@@ -837,7 +838,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   }
                   await snakeGame.fruitClaim();
                   await fruitToken.approve(snakeGame.address, 1000);
-                  await snakeGame.snakeNftClaim(10); // `Snake NFT` claim: 10
+                  // `Snake NFT` claim: 10
+                  for (let i = 0; i < 10; i++) {
+                      await snakeGame.snakeNftClaim();
+                  }
                   await snakeGame.checkSuperNftClaim();
                   let burnTokenIds = [];
                   for (let i = 0; i < 10; i++) {
@@ -911,6 +915,7 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(snakeNftsAmount.toString(), 0);
                   assert.equal(superNftsAmount.toString(), 0);
               });
+
               it("function `getEthBalance` returns ETH balance of this `Snake Game` contract", async () => {
                   await snakeGame.fallback({ value: ethers.utils.parseEther("1") });
                   const ethBalance = await snakeGame.getEthBalance(); // BigNumber
@@ -918,6 +923,25 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   // console.log("ethBalance:", ethBalanceConverted);
                   expectedEthBalance = ethers.utils.parseEther("1"); // 1 ETH
                   assert.equal(ethBalance.toString(), expectedEthBalance.toString());
+              });
+              it("function `getRandomNumber` returns pseudo rundom number in given range", async () => {
+                  // NOTE: Function give random numbers, if is called only once in one block!
+                  // Multiple calls in one block give the same random numbers.
+                  const range = 10;
+                  const randomNumberBigNumber = await snakeGame.getRandomNumber(range); // BigNumber
+                  const randomNumber = ethers.BigNumber.from(randomNumberBigNumber).toNumber(); // Number
+                  console.log("randomNumber:", randomNumber.toString());
+                  // `randomNumberBigNumber` is not integer!
+                  const checkInteger1 = Number.isInteger(randomNumberBigNumber);
+                  // console.log("checkInteger1:", checkInteger1);
+                  // `randomNumber` after conversion is integer
+                  const checkInteger2 = Number.isInteger(randomNumber);
+                  // console.log("checkInteger2:", checkInteger2);
+                  // Random number output is a bigNumber, not integer and have to be in the range: 0 <= randomNumber < range
+                  assert(Number.isInteger(randomNumberBigNumber) == false);
+                  assert(Number.isInteger(randomNumber) == true);
+                  assert(randomNumberBigNumber >= 0 && randomNumberBigNumber < range);
+                  assert(randomNumber >= 0 && randomNumber < range);
               });
           });
 

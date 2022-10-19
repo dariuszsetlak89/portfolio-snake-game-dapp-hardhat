@@ -15,8 +15,11 @@ const { developmentChains } = require("../../helper-hardhat-config");
               // Get contract: SnakeGame
               snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeToken
-              snakeTokenAddress = await snakeGame.s_snakeToken();
+              snakeTokenAddress = await snakeGame.i_snakeToken();
               snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
+              // Get contract: FruitToken
+              fruitTokenAddress = await snakeGame.i_fruitToken();
+              snakeToken = await ethers.getContractAt("Token", fruitTokenAddress);
           });
 
           describe("decimals", async () => {
