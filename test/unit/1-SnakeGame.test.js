@@ -9,22 +9,22 @@ const { developmentChains } = require("../../helper-hardhat-config");
               // Deploy smart contracts
               await deployments.fixture(["SnakeGame"]);
               // Get accounts: deployer, player
-              deployer = (await getNamedAccounts()).deployer;
-              player1 = (await getNamedAccounts()).player1;
+              const deployer = (await getNamedAccounts()).deployer;
+              const player1 = (await getNamedAccounts()).player1;
               // Get contract: SnakeGame
-              snakeGame = await ethers.getContract("SnakeGame", deployer);
+              const snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeToken
-              snakeTokenAddress = await snakeGame.i_snakeToken();
-              snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
+              const snakeTokenAddress = await snakeGame.i_snakeToken();
+              const snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
               // Get contract: FruitToken
-              fruitTokenAddress = await snakeGame.i_fruitToken();
-              fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
+              const fruitTokenAddress = await snakeGame.i_fruitToken();
+              const fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
               // Get contract: SnakeNft
-              snakeNftAddress = await snakeGame.i_snakeNft();
-              snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
+              const snakeNftAddress = await snakeGame.i_snakeNft();
+              const snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
               // Get contract: SuperPetNft
-              superPetNftAddress = await snakeGame.i_superPetNft();
-              superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
+              const superPetNftAddress = await snakeGame.i_superPetNft();
+              const superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
           });
 
           describe("constructor", async () => {

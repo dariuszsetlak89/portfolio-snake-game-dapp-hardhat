@@ -1,7 +1,7 @@
 {
     "name": "portfolio-snake-game-dapp-hardhat",
     "version": "0.1.0",
-    "description": "My portfolio project: Snake Game Dapp - hardhat backend",
+    "description": "My portfolio project: Snake Game Dapp - Hardhat backend",
     "repository": "git@github.com:dariuszsetlak89/portfolio-snake-game-hardhat.git",
     "author": "Dariusz Setlak <kryptoprogramista89@gmail.com>",
     "license": "GNU General Public License v3.0",
