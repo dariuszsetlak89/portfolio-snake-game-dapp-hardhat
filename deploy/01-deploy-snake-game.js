@@ -6,6 +6,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments;
     const { deployer } = await getNamedAccounts();
 
+    log("-------------------------------------------------------");
+
     // Constructor parameters
 
     // Snake Token imputs
@@ -44,7 +46,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         log: true,
         // gasLimit: 4000000,
         autoMine: true, // speed up deployment on local network, no effect on live networks
-        waitConfirmations: network.config.waitBlockConfirmations || 1,
+        waitConfirmations: network.config.blockConfirmations || 1,
     });
 
     // Verify deployed contract on Etherscan
@@ -55,4 +57,4 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     log("-------------------------------------------------------");
 };
 
-module.exports.tags = ["all", "SnakeGame"];
+module.exports.tags = ["all", "snakegame"];

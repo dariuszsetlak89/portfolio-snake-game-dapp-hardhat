@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 //////////////
 //  Errors  //
 //////////////
-error Token__ReceivedEthTransferReverted();
+error Token__ReceivedTransferReverted();
 error Token__InvalidFunctionCall();
 
 ////////////////////
@@ -29,7 +29,7 @@ error Token__InvalidFunctionCall();
  * which can be obtained by using `onlyOwner` modifier for these functions.
  *
  * Smart contract functions:
- * Overriden functions: mint, decimals
+ * Override functions: mint, decimals
  * Other functions: receive, fallback
  */
 contract Token is ERC20, ERC20Burnable, Ownable {
@@ -46,7 +46,7 @@ contract Token is ERC20, ERC20Burnable, Ownable {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
     /////////////////////////
-    // Overriden Functions //
+    // Override Functions //
     /////////////////////////
 
     /**
@@ -77,7 +77,7 @@ contract Token is ERC20, ERC20Burnable, Ownable {
      * reverts all unintended ETH transfers.
      */
     receive() external payable {
-        revert Token__ReceivedEthTransferReverted();
+        revert Token__ReceivedTransferReverted();
     }
 
     /**

@@ -14,13 +14,9 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 //////////////
 //  Errors  //
 //////////////
-error Nft__ReceivedEthTransferReverted();
-error Nft__InvalidFunctionCall();
-
-//////////////
-//  Errors  //
-//////////////
 error Nft__AlreadyInitialized();
+error Nft__ReceivedTransferReverted();
+error Nft__InvalidFunctionCall();
 
 ////////////////////
 // Smart Contract //
@@ -40,15 +36,15 @@ error Nft__AlreadyInitialized();
  * Init functions: _initializeContract
  * Main functions: safeMint
  * Getter functions: getNftUris, getNftUrisArrayLength, getInitialized, getLatestTokenId
- * Overriden functions: _burn, tokenURI, supportsInterface, _beforeTokenTransfer
+ * Override functions: _burn, tokenURI, supportsInterface, _beforeTokenTransfer
  * Other functions: receive, fallback
  */
 contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
 
-    ///////////////////////
-    //   NFT variables   //
-    ///////////////////////
+    /////////////////////
+    //  NFT variables  //
+    /////////////////////
 
     /// @dev Counter of tokenIds
     Counters.Counter private s_tokenIdCounter;
@@ -144,9 +140,9 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
         return s_initialized;
     }
 
-    /////////////////////////
-    // Overriden Functions //
-    /////////////////////////
+    ////////////////////////
+    // Override Functions //
+    ////////////////////////
 
     /// @dev The following functions are overrides required by Solidity.
 
@@ -186,12 +182,12 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
 
     /**
      * @notice Receive ETH
-     * @dev Functoin executes if unintended ETH transfer received.
+     * @dev Function executes if unintended ETH transfer received.
      * This contract doesn't allows to receive ETH transfers, thererfore `receive` function
      * reverts all unintended ETH transfers.
      */
     receive() external payable {
-        revert Nft__ReceivedEthTransferReverted();
+        revert Nft__ReceivedTransferReverted();
     }
 
     /**

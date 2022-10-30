@@ -5,6 +5,17 @@ const { developmentChains } = require("../../helper-hardhat-config");
 developmentChains.includes(network.name)
     ? describe.skip
     : describe("SnakeGame Staging Test: Play Snake Game 50x", function () {
+          let deployer,
+              player1,
+              snakeGame,
+              snakeTokenAddress,
+              snakeToken,
+              fruitTokenAddress,
+              fruitToken,
+              snakeNftAddress,
+              snakeNft,
+              superPetNftAddress,
+              superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
               await deployments.fixture(["SnakeGame"]);
@@ -14,16 +25,16 @@ developmentChains.includes(network.name)
               // Get contract: SnakeGame
               snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeToken
-              snakeTokenAddress = await snakeGame.s_snakeToken();
+              snakeTokenAddress = await snakeGame.i_snakeToken();
               snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
               // Get contract: FruitToken
-              fruitTokenAddress = await snakeGame.s_fruitToken();
+              fruitTokenAddress = await snakeGame.i_fruitToken();
               fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
               // Get contract: SnakeNft
-              snakeNftAddress = await snakeGame.s_snakeNft();
+              snakeNftAddress = await snakeGame.i_snakeNft();
               snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
               // Get contract: SuperPetNft
-              superPetNftAddress = await snakeGame.s_superPetNft();
+              superPetNftAddress = await snakeGame.i_superPetNft();
               superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
           });
 
@@ -57,8 +68,8 @@ developmentChains.includes(network.name)
                   let snakeNftsAmount = (await snakeGame.getPlayerStats()).snakeNftsAmount.toString();
 
                   for (let i = 1; i <= numberOfCycles; i++) {
-                      console.log(`!!! GAME CYCLE ${i} !!!`);
-
+                      // console.log("----------------------------------------------------------");
+                      console.log(`                   !!! GAME CYCLE ${i} - 10x !!!`);
                       console.log("-------------------------------------------------------------");
 
                       // 1) Player buys SNAKE: numberOfGames * gameCreditPrice
@@ -69,14 +80,14 @@ developmentChains.includes(network.name)
                       let gameCreditBasePrice = await snakeGame.GAME_CREDIT_BASE_PRICE();
                       // console.log("gameCreditBasePrice:", gameCreditBasePrice.toString());
                       let gameCreditPrice = gameCreditBasePrice - superPetNftBalance;
-                      console.log("gameCreditPrice:", gameCreditPrice.toString());
+                      console.log("gameCreditPrice:", gameCreditPrice.toString(), "SNAKE");
 
                       let snakeToBuy = numberOfGames * gameCreditPrice;
                       // snakeEthRate = 0.01 * 1e18 = 1e16
                       let snakeEthRate = await snakeGame.SNAKE_ETH_RATE();
                       // ethPayment = 0.01 ETH * snakeToBuy
                       let ethPayment = snakeToBuy * snakeEthRate;
-                      console.log("ethPayment:", (ethPayment / 1e18).toString());
+                      console.log("ethPayment:", (ethPayment / 1e18).toString(), "ETH");
                       // Buy SNAKE: +50 SNAKE
                       await snakeGame.buySnake(snakeToBuy, { value: ethPayment.toString() });
                       // SNAKE balance: 50 SNAKE

@@ -5,6 +5,17 @@ const { developmentChains } = require("../../helper-hardhat-config");
 developmentChains.includes(network.name)
     ? describe.skip
     : describe("SnakeGame Staging Test: Play Snake Game 1x", function () {
+          let deployer,
+              player1,
+              snakeGame,
+              snakeTokenAddress,
+              snakeToken,
+              fruitTokenAddress,
+              fruitToken,
+              snakeNftAddress,
+              snakeNft,
+              superPetNftAddress,
+              superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
               await deployments.fixture(["SnakeGame"]);
@@ -14,16 +25,16 @@ developmentChains.includes(network.name)
               // Get contract: SnakeGame
               snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeToken
-              snakeTokenAddress = await snakeGame.s_snakeToken();
+              snakeTokenAddress = await snakeGame.i_snakeToken();
               snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
               // Get contract: FruitToken
-              fruitTokenAddress = await snakeGame.s_fruitToken();
+              fruitTokenAddress = await snakeGame.i_fruitToken();
               fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
               // Get contract: SnakeNft
-              snakeNftAddress = await snakeGame.s_snakeNft();
+              snakeNftAddress = await snakeGame.i_snakeNft();
               snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
               // Get contract: SuperPetNft
-              superPetNftAddress = await snakeGame.s_superPetNft();
+              superPetNftAddress = await snakeGame.i_superPetNft();
               superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
           });
 
@@ -41,7 +52,7 @@ developmentChains.includes(network.name)
                   // 5) Player claims `Snake NFT`: +1 SNFT
                   // 6) Player checks `Super Pet NFT` claim eligibility
                   // 7) Player try to claim `Super Pet NFT` - transaction should revert
-                  // 14) FINAL PLAYER'S GAME TOKENS BALANCES
+                  // 8) FINAL PLAYER'S GAME TOKENS BALANCES
 
                   // -------------------------------------------------------------------------
 

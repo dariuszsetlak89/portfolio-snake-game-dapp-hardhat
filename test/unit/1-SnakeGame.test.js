@@ -5,26 +5,37 @@ const { developmentChains } = require("../../helper-hardhat-config");
 !developmentChains.includes(network.name)
     ? describe.skip
     : describe("SnakeGame Unit Tests", function () {
+          let deployer,
+              player1,
+              snakeGame,
+              snakeTokenAddress,
+              snakeToken,
+              fruitTokenAddress,
+              fruitToken,
+              snakeNftAddress,
+              snakeNft,
+              superPetNftAddress,
+              superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
-              await deployments.fixture(["SnakeGame"]);
+              await deployments.fixture(["snakegame"]);
               // Get accounts: deployer, player
-              const deployer = (await getNamedAccounts()).deployer;
-              const player1 = (await getNamedAccounts()).player1;
+              deployer = (await getNamedAccounts()).deployer;
+              player1 = (await getNamedAccounts()).player1;
               // Get contract: SnakeGame
-              const snakeGame = await ethers.getContract("SnakeGame", deployer);
+              snakeGame = await ethers.getContract("SnakeGame", deployer);
               // Get contract: SnakeToken
-              const snakeTokenAddress = await snakeGame.i_snakeToken();
-              const snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
+              snakeTokenAddress = await snakeGame.i_snakeToken();
+              snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
               // Get contract: FruitToken
-              const fruitTokenAddress = await snakeGame.i_fruitToken();
-              const fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
+              fruitTokenAddress = await snakeGame.i_fruitToken();
+              fruitToken = await ethers.getContractAt("Token", fruitTokenAddress);
               // Get contract: SnakeNft
-              const snakeNftAddress = await snakeGame.i_snakeNft();
-              const snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
+              snakeNftAddress = await snakeGame.i_snakeNft();
+              snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
               // Get contract: SuperPetNft
-              const superPetNftAddress = await snakeGame.i_superPetNft();
-              const superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
+              superPetNftAddress = await snakeGame.i_superPetNft();
+              superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
           });
 
           describe("constructor", async () => {
@@ -915,10 +926,9 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   assert.equal(snakeNftsAmount.toString(), 0);
                   assert.equal(superNftsAmount.toString(), 0);
               });
-
-              it("function `getEthBalance` returns ETH balance of this `Snake Game` contract", async () => {
+              it("function `getBalance` returns ETH balance of this `SnakeGame` contract", async () => {
                   await snakeGame.fallback({ value: ethers.utils.parseEther("1") });
-                  const ethBalance = await snakeGame.getEthBalance(); // BigNumber
+                  const ethBalance = await snakeGame.getBalance(); // BigNumber
                   // const ethBalanceConverted = ethers.utils.formatEther(ethBalance).toString(); // Number
                   // console.log("ethBalance:", ethBalanceConverted);
                   expectedEthBalance = ethers.utils.parseEther("1"); // 1 ETH
@@ -948,12 +958,12 @@ const { developmentChains } = require("../../helper-hardhat-config");
           describe("withdrawEth", async () => {
               it("allows `onlyOwner` to withdraw ETH balance of `Snake Game` contract", async () => {
                   await snakeGame.fallback({ value: ethers.utils.parseEther("2") });
-                  const ethBalanceBefore = await snakeGame.getEthBalance(); // BigNumber
+                  const ethBalanceBefore = await snakeGame.getBalance(); // BigNumber
                   // const ethBalanceBeforeConverted = ethers.utils.formatEther(ethBalanceBefore).toString(); // Number
                   // console.log("ethBalanceBefore:", ethBalanceBeforeConverted);
                   const withdrawalAmount = ethers.utils.parseEther("1"); // 1 ETH
                   await snakeGame.withdrawEth(withdrawalAmount);
-                  const ethBalanceAfter = await snakeGame.getEthBalance(); // BigNumber
+                  const ethBalanceAfter = await snakeGame.getBalance(); // BigNumber
                   // const ethBalanceAfterConverted = ethers.utils.formatEther(ethBalanceAfter).toString(); // Number
                   // console.log("ethBalanceAfter:", ethBalanceAfterConverted);
                   const expectedEthBalanceAfter = ethers.utils.parseEther("1"); // 1 ETH
@@ -961,12 +971,12 @@ const { developmentChains } = require("../../helper-hardhat-config");
               });
               it("should revert when ETH withdrawal transaction failed", async () => {
                   await snakeGame.fallback({ value: ethers.utils.parseEther("1") });
-                  // const ethBalanceBefore = await snakeGame.getEthBalance(); // BigNumber
+                  // const ethBalanceBefore = await snakeGame.getBalance(); // BigNumber
                   // const ethBalanceBeforeConverted = ethers.utils.formatEther(ethBalanceBefore).toString(); // Number
                   // console.log("ethBalanceBefore:", ethBalanceBeforeConverted);
                   const withdrawalAmount = ethers.utils.parseEther("2"); // 1 ETH
                   await expect(snakeGame.withdrawEth(withdrawalAmount)).to.be.revertedWith("SnakeGame__EthWithdrawalFailed");
-                  // const ethBalanceAfter = await snakeGame.getEthBalance(); // BigNumber
+                  // const ethBalanceAfter = await snakeGame.getBalance(); // BigNumber
                   // const ethBalanceAfterConverted = ethers.utils.formatEther(ethBalanceAfter).toString(); // Number
                   // console.log("ethBalanceAfter:", ethBalanceAfterConverted);
               });
@@ -977,8 +987,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   const [signer] = await ethers.getSigners();
                   const ethAmount = ethers.utils.parseEther("1");
                   const tx = signer.sendTransaction({ to: snakeGame.address, data: "0x", value: ethAmount });
-                  await expect(tx).to.emit(snakeGame, "EthTransferReceived").withArgs(ethAmount);
-                  // const ethBalance = ethers.utils.formatEther(await snakeGame.getEthBalance()).toString();
+                  await expect(tx).to.emit(snakeGame, "TransferReceived").withArgs(ethAmount);
+                  // const ethBalance = ethers.utils.formatEther(await snakeGame.getBalance()).toString();
                   // console.log("ethBalance:", ethBalance.toString());
               });
           });
@@ -988,8 +998,8 @@ const { developmentChains } = require("../../helper-hardhat-config");
                   const [signer] = await ethers.getSigners();
                   const ethAmount = ethers.utils.parseEther("1");
                   const tx = signer.sendTransaction({ to: snakeGame.address, data: "0x01", value: ethAmount });
-                  await expect(tx).to.emit(snakeGame, "EthTransferReceived").withArgs(ethAmount);
-                  // const ethBalance = ethers.utils.formatEther(await snakeGame.getEthBalance()).toString();
+                  await expect(tx).to.emit(snakeGame, "TransferReceived").withArgs(ethAmount);
+                  // const ethBalance = ethers.utils.formatEther(await snakeGame.getBalance()).toString();
                   // console.log("ethBalance:", ethBalance.toString());
               });
           });

@@ -7,9 +7,10 @@ const { developmentChains } = require("../../helper-hardhat-config");
 !developmentChains.includes(network.name)
     ? describe.skip
     : describe("Nft Unit Tests", function () {
+          let deployer, player1, snakeGame, snakeNftAddress, snakeNft, superPetNftAddress, superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
-              await deployments.fixture(["SnakeGame"]);
+              await deployments.fixture(["snakegame"]);
               // Get accounts: deployer, player
               deployer = (await getNamedAccounts()).deployer;
               player1 = (await getNamedAccounts()).player1;
@@ -45,17 +46,17 @@ const { developmentChains } = require("../../helper-hardhat-config");
           describe("receive", async () => {
               it("should invoke the `receive` function and revert transaction with an error", async () => {
                   const [signer] = await ethers.getSigners();
-                  const ethAmount = ethers.utils.parseEther("1");
-                  const tx = signer.sendTransaction({ to: snakeNft.address, data: "0x", value: ethAmount });
-                  await expect(tx).to.be.revertedWith("Nft__ReceivedEthTransferReverted");
+                  const amount = ethers.utils.parseEther("1");
+                  const tx = signer.sendTransaction({ to: snakeNft.address, data: "0x", value: amount });
+                  await expect(tx).to.be.revertedWith("Nft__ReceivedTransferReverted");
               });
           });
 
           describe("fallback", async () => {
               it("should invoke the `fallback` function and revert transaction with an error", async () => {
                   const [signer] = await ethers.getSigners();
-                  const ethAmount = ethers.utils.parseEther("1");
-                  const tx = signer.sendTransaction({ to: snakeNft.address, data: "0x01", value: ethAmount });
+                  const amount = ethers.utils.parseEther("1");
+                  const tx = signer.sendTransaction({ to: snakeNft.address, data: "0x01", value: amount });
                   await expect(tx).to.be.revertedWith("Nft__InvalidFunctionCall");
               });
           });

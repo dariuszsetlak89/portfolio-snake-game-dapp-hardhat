@@ -7,10 +7,11 @@ require("solidity-coverage");
 require("hardhat-contract-sizer");
 require("dotenv").config();
 
-const GOERLI_RPC_URL = process.env.GOERLI_RPC_URL || "https://eth-goerli/";
+const GOERLI_RPC_URL = process.env.GOERLI_TESTNET_RPC_URL || "https://eth-goerli/";
 const PRIVATE_KEY = process.env.PRIVATE_KEY || "0xkey";
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
 const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY || "";
+const REPORT_GAS = process.env.REPORT_GAS || false;
 
 module.exports = {
     solidity: "0.8.17",
@@ -21,46 +22,62 @@ module.exports = {
     },
     networks: {
         localhost: {
+            chainId: 31337,
             live: false,
             saveDeployments: true,
             tags: ["local"],
-            chainId: 31337,
+            blockConfirmations: 1,
         },
         hardhat: {
+            chainId: 31337,
             live: false,
             saveDeployments: true,
             tags: ["test", "local"],
-            chainId: 31337,
             blockConfirmations: 1,
         },
         goerli: {
+            chainId: 5,
             live: true,
             saveDeployments: true,
             tags: ["staging", "live"],
-            chainId: 5,
             url: GOERLI_RPC_URL,
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
             blockConfirmations: 6,
         },
     },
     etherscan: {
-        apiKey: "ETHERSCAN_API_KEY",
+        // yarn hardhat verify --network <NETWORK> <CONTRACT_ADDRESS> <CONSTRUCTOR_PARAMETERS>
+        apiKey: {
+            mainnet: ETHERSCAN_API_KEY,
+            goerli: ETHERSCAN_API_KEY,
+        },
     },
     gasReporter: {
-        enabled: process.env.REPORT_GAS ? true : false,
+        enabled: REPORT_GAS == "true" ? true : false,
         outputFile: "gas-report.txt",
         currency: "USD",
         noColors: true,
         token: "ETH", // ETH (default), BNB, MATIC, AVAX
-        // coinmarketcap: process.env.COINMARKETCAP_API_KEY,
+        coinmarketcap: COINMARKETCAP_API_KEY,
+    },
+    contractSizer: {
+        runOnCompile: false,
     },
     namedAccounts: {
-        deployer: 0,
-        player1: 1,
-        player2: 2,
-        player3: 3,
+        deployer: {
+            default: 0,
+        },
+        player1: {
+            default: 1,
+        },
+        player2: {
+            default: 2,
+        },
+        player3: {
+            default: 3,
+        },
     },
     mocha: {
-        timeout: 200000, // 200 seconds max
+        timeout: 100000, // 100 seconds max
     },
 };

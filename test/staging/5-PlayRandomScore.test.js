@@ -5,6 +5,17 @@ const { developmentChains } = require(`../../helper-hardhat-config`);
 developmentChains.includes(network.name)
     ? describe.skip
     : describe(`SnakeGame Staging Test: Play Snake Game - random score`, function () {
+          let deployer,
+              player1,
+              snakeGame,
+              snakeTokenAddress,
+              snakeToken,
+              fruitTokenAddress,
+              fruitToken,
+              snakeNftAddress,
+              snakeNft,
+              superPetNftAddress,
+              superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
               await deployments.fixture([`SnakeGame`]);
@@ -14,27 +25,27 @@ developmentChains.includes(network.name)
               // Get contract: SnakeGame
               snakeGame = await ethers.getContract(`SnakeGame`, deployer);
               // Get contract: SnakeToken
-              snakeTokenAddress = await snakeGame.s_snakeToken();
+              snakeTokenAddress = await snakeGame.i_snakeToken();
               snakeToken = await ethers.getContractAt(`Token`, snakeTokenAddress);
               // Get contract: FruitToken
-              fruitTokenAddress = await snakeGame.s_fruitToken();
+              fruitTokenAddress = await snakeGame.i_fruitToken();
               fruitToken = await ethers.getContractAt(`Token`, fruitTokenAddress);
               // Get contract: SnakeNft
-              snakeNftAddress = await snakeGame.s_snakeNft();
+              snakeNftAddress = await snakeGame.i_snakeNft();
               snakeNft = await ethers.getContractAt(`Nft`, snakeNftAddress);
               // Get contract: SuperPetNft
-              superPetNftAddress = await snakeGame.s_superPetNft();
+              superPetNftAddress = await snakeGame.i_superPetNft();
               superPetNft = await ethers.getContractAt(`Nft`, superPetNftAddress);
           });
 
           describe(`Play Snake Game`, async () => {
               it(`Gameplay simulation - random score`, async () => {
                   console.log(`--------------------------------------------------------------------------`);
-                  console.log(`      !!! Snake Game Gameplay - random score !!!`);
+                  console.log(`               !!! Snake Game Gameplay - random score !!!`);
                   console.log(`--------------------------------------------------------------------------`);
 
                   // Test description:
-                  // Play `numberOfGames` game clcles:
+                  // Play `numberOfGames` game cycles:
                   //// 1) Buy SNAKE: gameCreditPrice
                   //// 2) Buy gameCredit: 1
                   //// 3) Play the game: 1x
@@ -97,19 +108,17 @@ developmentChains.includes(network.name)
                   ////      Test variables      ////
                   //////////////////////////////////
 
-                  let numberOfGames = 10; // IMPORTANT! Set this variable carefully when test on-chain
+                  let numberOfGames = 100; // IMPORTANT! Set this variable carefully when test on-chain
                   let randomScoreRange = 200;
-
-                  // --------------------------------------------------------------------------------------
 
                   //////////////////////////////////////
                   //  Main FOR loop: 'numberOfGames'  //
                   //////////////////////////////////////
 
                   for (let i = 1; i <= numberOfGames; i++) {
-                      console.log(`-------------------------------------------------------------`);
-                      console.log(`                  !!! GAME NUMBER ${i} !!!`);
-                      console.log(`-------------------------------------------------------------`);
+                      console.log(`--------------------------------------------------------------------------`);
+                      console.log(`                         !!! GAME NUMBER ${i} !!!`);
+                      console.log(`--------------------------------------------------------------------------`);
 
                       //// 1) Buy SNAKE: gameCreditPrice
                       console.log(`1) Buy SNAKE: ${gameCreditPrice}`);
@@ -340,7 +349,7 @@ developmentChains.includes(network.name)
                       superPetNftBalance = await superPetNft.balanceOf(deployer);
                       console.log(`Super Pet NFT balance: ${superPetNftBalance} SPET`);
 
-                      console.log(`--------------------------------------------------------------------------`);
+                      // console.log(`--------------------------------------------------------------------------`);
                   }
               });
           });

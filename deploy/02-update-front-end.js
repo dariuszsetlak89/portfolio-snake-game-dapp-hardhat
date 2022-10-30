@@ -1,16 +1,16 @@
+const { frontEndContractsFile, frontEndAbiLocation } = require("../helper-hardhat-config");
 const { network } = require("hardhat");
 require("dotenv").config();
 const fs = require("fs");
-const { frontEndContractsFile, frontEndAbiLocation } = require("../helper-hardhat-config");
 
 module.exports = async function () {
-    if (process.env.UPDATE_FRONT_END) {
+    if (process.env.UPDATE_FRONT_END == "true") {
         console.log("Updating front end...");
-        updateContractAddresses();
-        updateAbi();
+        await updateContractAddresses();
+        await updateAbi();
         console.log("Front end updated!");
+        console.log("-------------------------------------------------------");
     }
-    console.log("-------------------------------------------------------");
 };
 
 async function updateContractAddresses() {
@@ -28,12 +28,11 @@ async function updateContractAddresses() {
     // Get contract: SuperPetNft
     const superPetNftAddress = await snakeGame.i_superPetNft();
     const superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
-
-    const chainId = network.config.chainId.toString();
+    // Read existing addresses from file
     const contractAddresses = JSON.parse(fs.readFileSync(frontEndContractsFile, "utf8"));
+    const chainId = network.config.chainId.toString();
 
     if (chainId in contractAddresses) {
-        //// Update game contract addresses
         // SnakeGame address update
         const snakeGameChainAddress = contractAddresses[chainId]["SnakeGame"];
         if (!snakeGameChainAddress.includes(snakeGame.address)) {
@@ -65,7 +64,7 @@ async function updateContractAddresses() {
             superPetNftChainAddress.push(superPetNft.address);
         }
     } else {
-        //// Save game contract addresses
+        // Save new game contract addresses
         contractAddresses[chainId] = {
             SnakeGame: [snakeGame.address],
             SnakeToken: [snakeToken.address],
@@ -75,6 +74,22 @@ async function updateContractAddresses() {
         };
     }
     fs.writeFileSync(frontEndContractsFile, JSON.stringify(contractAddresses));
+}
+
+async function updateAbi() {
+    // Get contract: SnakeGame
+    snakeGame = await ethers.getContract("SnakeGame");
+    // Get contract: SnakeToken
+    snakeTokenAddress = await snakeGame.i_snakeToken();
+    snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
+    // Get contract: SnakeNft
+    snakeNftAddress = await snakeGame.i_snakeNft();
+    snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
+
+    // Write to file
+    fs.writeFileSync(`${frontEndAbiLocation}SnakeGame.json`, snakeGame.interface.format(ethers.utils.FormatTypes.json));
+    fs.writeFileSync(`${frontEndAbiLocation}Token.json`, snakeToken.interface.format(ethers.utils.FormatTypes.json));
+    fs.writeFileSync(`${frontEndAbiLocation}Nft.json`, snakeNft.interface.format(ethers.utils.FormatTypes.json));
 }
 
 async function updateAbi() {
