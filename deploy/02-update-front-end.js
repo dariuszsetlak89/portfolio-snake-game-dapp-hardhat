@@ -87,25 +87,9 @@ async function updateAbi() {
     snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
 
     // Write to file
-    fs.writeFileSync(`${frontEndAbiLocation}SnakeGame.json`, snakeGame.interface.format(ethers.utils.FormatTypes.json));
-    fs.writeFileSync(`${frontEndAbiLocation}Token.json`, snakeToken.interface.format(ethers.utils.FormatTypes.json));
-    fs.writeFileSync(`${frontEndAbiLocation}Nft.json`, snakeNft.interface.format(ethers.utils.FormatTypes.json));
-}
-
-async function updateAbi() {
-    // Get contract: SnakeGame
-    snakeGame = await ethers.getContract("SnakeGame");
-    // Get contract: SnakeToken
-    snakeTokenAddress = await snakeGame.i_snakeToken();
-    snakeToken = await ethers.getContractAt("Token", snakeTokenAddress);
-    // Get contract: SnakeNft
-    snakeNftAddress = await snakeGame.i_snakeNft();
-    snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
-
-    // Write to file
-    fs.writeFileSync(`${frontEndAbiLocation}SnakeGame.json`, snakeGame.interface.format(ethers.utils.FormatTypes.json));
-    fs.writeFileSync(`${frontEndAbiLocation}Token.json`, snakeToken.interface.format(ethers.utils.FormatTypes.json));
-    fs.writeFileSync(`${frontEndAbiLocation}Nft.json`, snakeNft.interface.format(ethers.utils.FormatTypes.json));
+    fs.writeFileSync(`${frontEndAbiLocation}SnakeGameAbi.json`, snakeGame.interface.format(ethers.utils.FormatTypes.json));
+    fs.writeFileSync(`${frontEndAbiLocation}TokenAbi.json`, snakeToken.interface.format(ethers.utils.FormatTypes.json));
+    fs.writeFileSync(`${frontEndAbiLocation}NftAbi.json`, snakeNft.interface.format(ethers.utils.FormatTypes.json));
 }
 
 module.exports.tags = ["all", "frontend"];

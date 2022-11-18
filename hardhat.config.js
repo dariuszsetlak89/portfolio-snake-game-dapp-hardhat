@@ -58,7 +58,7 @@ module.exports = {
         currency: "USD",
         noColors: true,
         token: "ETH", // ETH (default), BNB, MATIC, AVAX
-        coinmarketcap: COINMARKETCAP_API_KEY,
+        // coinmarketcap: COINMARKETCAP_API_KEY,
     },
     contractSizer: {
         runOnCompile: false,

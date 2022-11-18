@@ -6,13 +6,13 @@ pragma solidity ^0.8.17;
 ///////////////
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "hardhat/console.sol";
 import "./tokens/Token.sol";
 import "./tokens/Nft.sol";
 
 //////////////
 //  Errors  //
 //////////////
+// error SnakeGame__FunctionCallerNotAuthorized();
 error SnakeGame__NoGameCredits();
 error SnakeGame__GameNotStarted();
 error SnakeGame__SnakeAirdopAlreadyClaimed();
@@ -113,13 +113,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /// @dev Mapping Player's address to Player's public game statistics struct.
     mapping(address => PlayerStats) public s_stats;
 
-    ///////////////////////
-    //  State variables  //
-    ///////////////////////
-
-    /// @dev Current Player's address
-    // address private player;
-
     ////////////////////////
     // Contract variables //
     ////////////////////////
@@ -139,6 +132,9 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /////////////////////////
     // Constant variables  //
     /////////////////////////
+
+    /// @dev Authorized caller address
+    // address public immutable i_authorizedCallerAddress;
 
     /// @dev Minimum game score required to unlock for mint one `Snake NFT`.
     uint256 public constant SCORE_TO_CLAIM_SNAKE_NFT = 100;
@@ -176,9 +172,13 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     //  Modifiers  //
     /////////////////
 
-    /// @dev Modifier sets `msg.sender` as current Player
-    // modifier () {
-    //     player = msg.sender;
+    // /// @dev Modifier sets `msg.sender` as current Player
+    // modifier onlyAuthorizedCaller() {
+    //     //  authorizedCallerAddress hardcoded for tests
+    //     address authorizedCallerAddress = 0xEb79FD91fc34F9A74c5A046eB0c88a20B9D8f778;
+    //     if (msg.sender != authorizedCallerAddress) {
+    //         revert SnakeGame__FunctionCallerNotAuthorized();
+    //     }
     //     _;
     // }
 
@@ -189,6 +189,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @dev SnakeGame contract constructor.
      * Set given parameters to appropriate variables, when contract deploys.
+     * // param authorizedCallerAddress given address of authorized caller contract
      * @param snakeTokenName given name parameter to create `Snake Token` using `Token` contract
      * @param snakeTokenSymbol given symbol parameter to create `Snake Token` using `Token` contract
      * @param fruitTokenName given name parameter to create `Fruit Token` using `Token` contract
@@ -201,6 +202,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @param superPetNftUris given uris array parameter to create `Super Pet NFT` using `Nft` contract
      */
     constructor(
+        // address authorizedCallerAddress,
         string memory snakeTokenName,
         string memory snakeTokenSymbol,
         string memory fruitTokenName,
@@ -212,6 +214,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         string memory superPetNftSymbol,
         string[] memory superPetNftUris
     ) {
+        // Set authorized caller address
+        // i_authorizedCallerAddress = authorizedCallerAddress;
         // Create `Snake Token [SNAKE]`
         i_snakeToken = createToken(snakeTokenName, snakeTokenSymbol);
         // Create `Fruit Token [FRUIT]`
@@ -269,7 +273,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * If Player has at least one game credit, then function reduces by one parameter `gameCredits`
      * and sets parameter `gameStartedFlag` to `true`. At the end function emit `GameStarted` event.
      */
-    function gameStart() external {
+    function gameStart() external /*onlyAuthorizedCaller*/
+    {
         // Check if player has at least one game credit
         if (s_players[msg.sender].gameCredits < 1) {
             revert SnakeGame__NoGameCredits();
@@ -617,7 +622,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     ///////////////////////
 
     /**
-     * @dev Function is used to generate randomly choose index of URI's data array.
+     * @dev Function is used to generate randomly choosen index of URI's data array.
+     * Can be replaced by random number delivered by Chainlink VRF, to ensure more reliable randomness.
      *
      * Private function for internal use. Can ONLY be called in this `SnakeGame` contract.
      *
@@ -649,7 +655,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @notice Function to get Player's game parameters.
      * @dev Getter function to get current PlayerData parameters.
-     * Can ONLY be called by current Player and shows him only his own game parameters.
+     * Function can be called by current Player and shows him only his game parameters.
+     * Important! For privacy Player can not see game parameters of other Player.
      * @return Private game parameters of current Player.
      */
     function getPlayerData() external view returns (PlayerData memory) {
@@ -669,7 +676,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @notice Function to get Player's public game statistics.
      * @dev Getter function to get current PlayerStats public statistics.
-     * Can be called by anyone and shows current Player public game statistics.
+     * Can be called by any Player and shows him his public game statistics.
      * @return Public game statistics of any given Player.
      */
     function getPlayerStats() public view returns (PlayerStats memory) {
@@ -703,14 +710,12 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @notice Withdraw ETH from `SnakeGame` smart contract.
      * @dev Function allows to withdraw ETH acumulated in `SnakeGame` smart contract.
      *
-     * Function can ONLY be called by `owner` of contract `SnakeGame`, which is smart contract `deployer`.
-     * This restriction is obtained by using `onlyOwner` modifier.
-     *
-     * Function is protected from reentrancy attack, by using `nonReentrant` modifier from OpenZeppelin library.
+     * Function can ONLY be called by `owner` of contract `SnakeGame`, which is the smart contract `deployer`,
+     * what is obtained by using `onlyOwner` modifier.
      *
      * @param _amount ETH amount to withdraw by contract `owner`
      */
-    function withdrawEth(uint256 _amount) external nonReentrant onlyOwner {
+    function withdrawEth(uint256 _amount) external onlyOwner {
         address owner = payable(owner());
         (bool success, ) = payable(owner).call{value: _amount}("");
         if (!success) {

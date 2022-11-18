@@ -10,8 +10,8 @@ const networkConfig = {
 const developmentChains = ["hardhat", "localhost"];
 
 // Next.js The Graph
-const frontEndContractsFile = "../portfolio-snake-game-dapp-nextjs/constants/contractAddresses.json";
-const frontEndAbiLocation = "../portfolio-snake-game-dapp-nextjs/constants/";
+const frontEndContractsFile = "../portfolio-snake-game-nextjs/constants/contractAddresses.json";
+const frontEndAbiLocation = "../portfolio-snake-game-nextjs/constants/";
 
 module.exports = {
     networkConfig,

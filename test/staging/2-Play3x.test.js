@@ -2,6 +2,13 @@ const { network, deployments, ethers, getNamedAccounts } = require("hardhat");
 const { assert, expect } = require("chai");
 const { developmentChains } = require("../../helper-hardhat-config");
 
+/*
+  This test is prepared to run both on development network like Hardhat or testnet network
+  like Goerli. To run this test on development network simply put exclamation mark in front
+  of first code line below like this: '!developmentChains.includes(network.name)'and change
+  test 'it' to 'it.only', to run only this test, without running also all unit tests from
+  'unit' folder.
+*/
 developmentChains.includes(network.name)
     ? describe.skip
     : describe("SnakeGame Staging Test: Play Snake Game 3x", function () {
@@ -18,7 +25,7 @@ developmentChains.includes(network.name)
               superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
-              await deployments.fixture(["SnakeGame"]);
+              await deployments.fixture(["snakegame"]);
               // Get accounts: deployer, player
               deployer = (await getNamedAccounts()).deployer;
               player1 = (await getNamedAccounts()).player1;
@@ -215,7 +222,7 @@ developmentChains.includes(network.name)
                   console.log("-------------------------------------------------------------");
 
                   // 7) Player buys gameCredits: gameCredits += 1 = 1
-                  console.log("7) Player buys gameCredits: gameCredits +=");
+                  console.log("7) Player buys gameCredits: gameCredits += 1 = 1");
                   // Approve `SnakeGame` to transfer 5 SNAKE tokens
                   await snakeToken.approve(snakeGame.address, snakeBalance);
                   // gameCredits += 1

@@ -20,7 +20,7 @@ error Token__InvalidFunctionCall();
 
 /**
  * @title Token contract
- * @author Dariusz Setlak, OpenZeppelin
+ * @author Dariusz Setlak
  * @dev Smart contract based on Ethereum ERC-20 token standard, created using OpenZeppelin Wizard. Contract inherits
  * all ERC-20 token standard functions from OpenZeppelin library contracts.
  *

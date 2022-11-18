@@ -24,7 +24,7 @@ error Nft__InvalidFunctionCall();
 
 /**
  * @title Nft contract
- * @author Dariusz Setlak, OpenZeppelin
+ * @author Dariusz Setlak
  * @dev Smart contract based on Ethereum ERC-721 token standard, created using OpenZeppelin Wizard. Contract inherits
  * all ERC-721 token standard functions from OpenZeppelin library contracts.
  *
@@ -61,7 +61,7 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
 
     /**
      * @dev `Nft` contract constructor passes given parameters to OpenZeppelin library ERC721
-     * constructor, which use them to construct a standard ERC-721 token.
+     * constructor, which then use them to construct a standard ERC-721 token.
      * @param name token name
      * @param symbol token symbol
      * @param uris token uris array
@@ -83,9 +83,9 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
      * @param _uris token URI's array
      */
     function _initializeContract(string[] memory _uris) private {
-        // if (s_initialized) {
-        //     revert Nft__AlreadyInitialized();
-        // }
+        if (s_initialized) {
+            revert Nft__AlreadyInitialized();
+        }
         s_uris = _uris;
         s_initialized = true;
     }
@@ -147,18 +147,22 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
     /// @dev The following functions are overrides required by Solidity.
 
     /**
-     * @dev Function overrides ERC721 and ERC721URIStorage libraries functions
+     * @dev Function overrides _burn function from ERC721 and ERC721URIStorage libraries.
      * @param _tokenId unique id of new minted token
      */
     function _burn(uint256 _tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(_tokenId);
+        ERC721URIStorage._burn(_tokenId);
     }
 
     /**
-     * @dev Function overrides ERC721 and ERC721URIStorage libraries functions
+     * @dev Function overrides tokenURI function from ERC721 and ERC721URIStorage libraries.
+     * Function allows to get NFT token URI of given tokenId.
      * @param _tokenId unique id of new minted token
+     * @return Value of NFT token URI of given _tokenId
      */
-    function tokenURI(uint256 _tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {}
+    function tokenURI(uint256 _tokenId) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        return ERC721URIStorage.tokenURI(_tokenId);
+    }
 
     /**
      * @dev See {IERC165-supportsInterface}.

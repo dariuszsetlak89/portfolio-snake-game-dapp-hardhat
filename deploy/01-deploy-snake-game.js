@@ -10,6 +10,9 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     // Constructor parameters
 
+    // Authorized caller address
+    // const authorizedCallerAddress = "0x0000000000000000000000000000000000000000";
+
     // Snake Token imputs
     const snakeTokenName = "Snake Token";
     const snakeTokenSymbol = "SNAKE";
@@ -27,6 +30,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     // Deployment arguments array
     const args = [
+        // authorizedCallerAddress,
         snakeTokenName,
         snakeTokenSymbol,
         fruitTokenName,

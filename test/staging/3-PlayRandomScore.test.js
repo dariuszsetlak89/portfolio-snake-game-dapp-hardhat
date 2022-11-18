@@ -2,7 +2,19 @@ const { network, deployments, ethers, getNamedAccounts } = require(`hardhat`);
 const { assert } = require(`chai`);
 const { developmentChains } = require(`../../helper-hardhat-config`);
 
-developmentChains.includes(network.name)
+/*
+  This test is prepared to run both on development network like Hardhat or testnet network
+  like Goerli. To run this test on development network simply put exclamation mark in front
+  of first code line below like this: '!developmentChains.includes(network.name)'and change
+  test 'it' to 'it.only', to run only this test, without running also all unit tests from
+  'unit' folder.
+  !!! Important !!!
+  If you run this test on testnet network like Goerli, please set the value of parameter
+  'numberOfGames' to reasonable value, like for example maximum 'numberOfGames = 5'.
+  If you set the number of games parameter too high it will take you "ages" to finish
+  this test.
+*/
+!developmentChains.includes(network.name)
     ? describe.skip
     : describe(`SnakeGame Staging Test: Play Snake Game - random score`, function () {
           let deployer,
@@ -18,7 +30,7 @@ developmentChains.includes(network.name)
               superPetNft;
           beforeEach(async () => {
               // Deploy smart contracts
-              await deployments.fixture([`SnakeGame`]);
+              await deployments.fixture([`snakegame`]);
               // Get accounts: deployer, player
               deployer = (await getNamedAccounts()).deployer;
               player1 = (await getNamedAccounts()).player1;
@@ -39,7 +51,7 @@ developmentChains.includes(network.name)
           });
 
           describe(`Play Snake Game`, async () => {
-              it(`Gameplay simulation - random score`, async () => {
+              it.only(`Gameplay simulation - random score`, async () => {
                   console.log(`--------------------------------------------------------------------------`);
                   console.log(`               !!! Snake Game Gameplay - random score !!!`);
                   console.log(`--------------------------------------------------------------------------`);
@@ -108,7 +120,7 @@ developmentChains.includes(network.name)
                   ////      Test variables      ////
                   //////////////////////////////////
 
-                  let numberOfGames = 100; // IMPORTANT! Set this variable carefully when test on-chain
+                  let numberOfGames = 33; // IMPORTANT! Set this variable carefully when test on-chain
                   let randomScoreRange = 200;
 
                   //////////////////////////////////////
@@ -189,7 +201,9 @@ developmentChains.includes(network.name)
                               console.log(`!!! 'Snake NFT' unlocked !!!`);
                               assert.equal(snakeNftsToClaim, 1);
                           } else {
-                              console.log(`Minimum game score to unlock 'Snake NFT' not reached!: ${gameScore} < ${scoreToClaimSnakeNft}`);
+                              console.log(
+                                  `Minimum game score to unlock 'Snake NFT' not reached!: ${gameScore} < ${scoreToClaimSnakeNft}`
+                              );
                               assert.equal(snakeNftsToClaim, 0);
                           }
                       } else {
