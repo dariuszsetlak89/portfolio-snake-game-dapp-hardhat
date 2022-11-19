@@ -132,26 +132,11 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     // Immutable variables //
     /////////////////////////
 
-    /// @dev Game round duration.
-    uint32 public immutable i_roundDuration; // default: 1 hour - fixed in Chainlink Automation
-
     /// @dev Minimum game score required to mint Snake NFT [SNFT].
     uint32 public immutable i_scoreRequired; // default: 100
 
     /// @dev Minimum balance of Snake NFT [SNFT] required to unlock Super Pet NFT [SPET].
     uint32 public immutable i_snakeNftRequired; // default: 5
-
-    /// @dev SNAKE tokens airdrop amount
-    uint32 public immutable i_snakeAirdrop; // default: 10
-
-    /// @dev Game base fee paid in SNAKE tokens.
-    uint32 public immutable i_gameBaseFee; // default: 3
-
-    /// @dev Maximum number of Snake NFT tokens possible to mint in the Game by one Player.
-    uint32 public immutable i_maxSnakeNfts; // default: 16
-
-    /// @dev Maximum number of Super Pet NFT tokens possible to mint in the Game by one Player.
-    uint32 public immutable i_maxSuperPetNfts; // default: 3
 
     /**
      * @dev SNAKE token exchange rate. Depends on the type of deployment network:
@@ -171,6 +156,18 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     // Constant variables //
     ////////////////////////
 
+    /// @dev SNAKE tokens airdrop amount
+    uint32 public constant SNAKE_AIRDROP = 12;
+
+    /// @dev Game base fee paid in SNAKE tokens.
+    uint32 public constant GAME_BASE_FEE = 4;
+
+    /// @dev Maximum number of Snake NFT tokens possible to mint in the Game by one Player.
+    uint32 public constant MAX_SNAKE_NFTS = 16;
+
+    /// @dev Maximum number of Super Pet NFT tokens possible to mint in the Game by one Player.
+    uint32 public constant MAX_SUPER_PET_NFTS = 3;
+
     /// @dev Developer account address.
     address public constant DEV = 0xEb79FD91fc34F9A74c5A046eB0c88a20B9D8f778;
 
@@ -180,64 +177,33 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /**
      * @dev SnakeGame contract constructor. Sets given parameters to appropriate variables, when contract deploys.
-     * // Snake Token input parameters
-     * @param snakeTokenName given name parameter to create Snake Token using `Token` contract
-     * @param snakeTokenSymbol given symbol parameter to create Snake Token using `Token` contract
-     * // Snake NFT input parameters
-     * @param snakeNftName given name parameter to create Snake NFT using `Nft` contract
-     * @param snakeNftSymbol given symbol parameter to create Snake NFT using `Nft` contract
+     * // NFT Tokens URI data arrays
      * @param snakeNftUris given uris array parameter to create Snake NFT using `Nft` contract
-     * // Super Pet
-     * @param superPetNftName given name parameter to create Super Pet NFT using `Nft` contract
-     * @param superPetNftSymbol given symbol parameter to create Super Pet NFT using `Nft` contract
      * @param superPetNftUris given uris array parameter to create Super Pet NFT using `Nft` contract
      * // Game immutable parameters
      * @param scoreRequired given minimum game score required to mint Snake NFT
      * @param snakeNftRequired given minimum balance of Snake NFT [SNFT] required to unlock Super Pet NFT [SPET].
-     * @param snakeAirdropAmount given SNAKE tokens airdrop amount
-     * @param gameBaseFee given game base fee paid in SNAKE tokens
-     * @param maxSnakeNfts given maximum number of Snake NFT tokens possible to mint in the Game by one Player
-     * @param maxSuperPetNfts given maximum number of Super Pet NFT tokens possible to mint in the Game by one Player
      * @param snakeExchangeRate given SNAKE token exchange rate, depends on the type of deployment network
      * @param superPetNftMintFee given mint fee in native blockchain currency required to mint Super Pet NFT,
      * depends on the type of deployment network
      */
     constructor(
-        // Snake token input parameters
-        string memory snakeTokenName,
-        string memory snakeTokenSymbol,
-        // Snake NFT input parameters
-        string memory snakeNftName,
-        string memory snakeNftSymbol,
+        // NFT Tokens URI data arrays
         string[] memory snakeNftUris,
-        // Super Pet NFT input parameters
-        string memory superPetNftName,
-        string memory superPetNftSymbol,
         string[] memory superPetNftUris,
         // Game immutable parameters
-        uint32 roundDuration,
         uint32 scoreRequired,
         uint32 snakeNftRequired,
-        uint32 snakeAirdropAmount,
-        uint32 gameBaseFee,
-        uint32 maxSnakeNfts,
-        uint32 maxSuperPetNfts,
         uint256 snakeExchangeRate,
         uint256 superPetNftMintFee
     ) {
         // Create game tokens
-        i_snakeToken = createToken(snakeTokenName, snakeTokenSymbol);
-        i_snakeNft = createNft(snakeNftName, snakeNftSymbol, snakeNftUris);
-        i_superPetNft = createNft(superPetNftName, superPetNftSymbol, superPetNftUris);
-
+        i_snakeToken = createToken("Snake Token", "SNAKE");
+        i_snakeNft = createNft("Snake NFT", "SNFT", snakeNftUris);
+        i_superPetNft = createNft("Super Pet NFT", "SPET", superPetNftUris);
         // Set game immutable parameters
-        i_roundDuration = roundDuration;
         i_scoreRequired = scoreRequired;
         i_snakeNftRequired = snakeNftRequired;
-        i_snakeAirdrop = snakeAirdropAmount;
-        i_gameBaseFee = gameBaseFee;
-        i_maxSnakeNfts = maxSnakeNfts;
-        i_maxSuperPetNfts = maxSuperPetNfts;
         i_snakeExchangeRate = snakeExchangeRate;
         i_superPetNftMintFee = superPetNftMintFee;
     }
@@ -412,7 +378,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @notice Free SNAKE tokens airdrop for every new Player.
      * @dev Function allows every new Player claim for free SNAKE airdrop. Airdrop amount equals immutable
-     * variable i_snakeAirdrop.
+     * variable SNAKE_AIRDROP.
      * This is an external function called by the Player, using front-end application.
      *
      * Function execution:
@@ -429,8 +395,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         }
         // Mint SNAKE tokens to Player's account
         s_players[msg.sender].snakeAirdropFlag = true;
-        i_snakeToken.mint(msg.sender, i_snakeAirdrop);
-        emit SnakeAirdropReceived(msg.sender, i_snakeAirdrop);
+        i_snakeToken.mint(msg.sender, SNAKE_AIRDROP);
+        emit SnakeAirdropReceived(msg.sender, SNAKE_AIRDROP);
     }
 
     /**
@@ -510,7 +476,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     function _checkSuperPetNft(address _player) private {
         uint256 snakeNftBalance = i_snakeNft.balanceOf(_player);
         // Check maximum Super Pet NFTs mint limit && required Snake NFT balance
-        if (s_players[_player].mintedSuperPetNfts < i_maxSuperPetNfts && snakeNftBalance >= i_snakeNftRequired) {
+        if (s_players[_player].mintedSuperPetNfts < MAX_SUPER_PET_NFTS && snakeNftBalance >= i_snakeNftRequired) {
             s_players[_player].superPetNftClaimFlag = true;
             emit SuperPetNftUnlocked(_player);
         }
@@ -592,7 +558,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      */
     function _gameFeeCalculation() private view returns (uint256) {
         uint256 superPetNftBalance = i_superPetNft.balanceOf(msg.sender);
-        uint256 gameFee = i_gameBaseFee - superPetNftBalance;
+        uint256 gameFee = GAME_BASE_FEE - superPetNftBalance;
         if (gameFee >= 1) return gameFee;
         else return 1;
     }
