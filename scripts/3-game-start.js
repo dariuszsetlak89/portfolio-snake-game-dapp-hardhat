@@ -70,6 +70,10 @@ async function gameStart() {
     snakeBalance = await snakeToken.balanceOf(PLAYER);
     console.log(`SNAKE balance after: ${snakeBalance.toString()}`);
 
+    // Gas estimation
+    gasEstimation = await ethers.provider.getBalance(developer);
+    console.log(`Gas estimation: ${gasEstimation}`);
+
     console.log("-------------------------------------------------------");
 }
 

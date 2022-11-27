@@ -167,7 +167,13 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, ERC721) returns (bool) {}
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC721Enumerable, ERC721)
+        returns (bool)
+    {}
 
     /**
      * @dev See {IERC165-supportsInterface}.

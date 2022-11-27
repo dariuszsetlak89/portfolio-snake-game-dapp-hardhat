@@ -33,7 +33,7 @@ async function gameOver() {
 
     /////////////////////////
     // Set game score:
-    const GAME_SCORE = 100;
+    const GAME_SCORE = 1000;
     /////////////////////////
 
     // Get contract: SnakeGame
@@ -74,10 +74,10 @@ async function gameOver() {
     playersGamesPlayed = (await snakeGame.getPlayerData(PLAYER)).playerGamesPlayed;
     console.log("Games played by Player:", playersGamesPlayed.toString());
     // Last Player's score
-    playersLastScore = (await snakeGame.getPlayerData(PLAYER)).lastScore;
+    playersLastScore = (await snakeGame.getPlayerData(PLAYER)).playerLastScore;
     console.log("Last score:", playersLastScore.toString());
     // Best Player's score
-    playersBestScore = (await snakeGame.getPlayerData(PLAYER)).bestScore;
+    playersBestScore = (await snakeGame.getPlayerData(PLAYER)).playerBestScore;
     console.log("Best score:", playersBestScore.toString());
 
     //// Global game data
@@ -85,19 +85,19 @@ async function gameOver() {
     currentRound = await snakeGame.getGameRound();
     console.log("Current game round number:", currentRound.toString());
     // Games played in this game round
-    roundGamesPlayed = (await snakeGame.getGameRoundData(currentRound)).gamesPlayed;
+    roundGamesPlayed = (await snakeGame.getGameRoundData(currentRound)).roundGamesPlayed;
     console.log("Round games played:", roundGamesPlayed.toString());
     // Best player in this game round
-    roundBestPlayer = (await snakeGame.getGameRoundData(currentRound)).bestPlayer;
+    roundBestPlayer = (await snakeGame.getGameRoundData(currentRound)).roundBestPlayer;
     console.log("Round best player:", roundBestPlayer.toString());
     // Highest score in this game round
-    roundHighestScore = (await snakeGame.getGameRoundData(currentRound)).highestScore;
+    roundHighestScore = (await snakeGame.getGameRoundData(currentRound)).roundHighestScore;
     console.log("Round best score:", roundHighestScore.toString());
 
     //// Player's NFTs data
     // Minted Snake NFTs amount parameter
     mintedSnakeNfts = (await snakeGame.getPlayerData(PLAYER)).mintedSnakeNfts;
-    console.log(`Minted Snake NFTs amount parameter: ${mintedSnakeNfts.toString()}`);
+    console.log(`Minted Snake NFTs amount: ${mintedSnakeNfts.toString()}`);
     // Snake NFT balance
     snakeNftBalance = await snakeNft.balanceOf(PLAYER);
     console.log(`Snake NFT balance: ${snakeNftBalance.toString()}`);

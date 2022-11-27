@@ -34,6 +34,7 @@ module.exports = {
             saveDeployments: true,
             tags: ["test", "local"],
             blockConfirmations: 1,
+            gas: "auto",
         },
         goerli: {
             chainId: 5,
@@ -43,6 +44,7 @@ module.exports = {
             url: GOERLI_RPC_URL,
             accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
             blockConfirmations: 6,
+            gas: "auto",
         },
     },
     etherscan: {

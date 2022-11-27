@@ -34,9 +34,9 @@ error SnakeGame__SnakeNftBalanceTooLow(uint256 snakeNftBalance, uint256 required
  * Deployment Functions: createToken, createNft
  * Game functions: finishRound, gameStart, gameOver
  * Token functions: snakeAirdrop, buySnake
- * NFT functions: mintSuperPetNft, _mintSnakeNft, _burnSnakeNfts, _checkSuperPetNft, _mintSuperPetNft
+ * NFT functions: _mintSnakeNft, mintSuperPetNft, _burnSnakeNfts, _checkSuperPetNft, _mintSuperPetNft
  * Private functions: _gameFeeCalculation, _randomNumber
- * Getter functions: getGameRound, getGameHighestScoreEver, getGamePlayedTotal, getGameRoundData, getPlayerData,
+ * Getter functions: getGameRound, getHighestScoreEver, getGamesPlayedTotal, getGameRoundData, getPlayerData,
  * getBalance, getRandomNumber
  * Other functions: receive, fallback
  */
@@ -59,14 +59,14 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /**
      * @dev Struct of Game round parameters.
-     * uint32 gamesPlayed - the number of games played in this round (sum of all Player's played games)
-     * uint32 highestScore - the highest game score in this round
-     * address bestPlayer - address of the Player with the highest score in this round
+     * uint32 roundGamesPlayed - the number of games played in this round (sum of all Player's played games)
+     * uint32 roundHighestScore - the highest game score in this round
+     * address roundBestPlayer - address of the Player with the highest score in this round
      */
     struct GameRoundData {
-        uint32 gamesPlayed;
-        uint32 highestScore;
-        address bestPlayer;
+        uint32 roundGamesPlayed;
+        uint32 roundHighestScore;
+        address roundBestPlayer;
     }
 
     /**
@@ -75,8 +75,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * bool gameStartedFlag - the game running status: false - game not started (or finished), true - game started.
      * bool superPetNftClaimFlag - the Super Pet NFT claim status: 0 - nothing to claim, 1 - claim avaliable
      * uint32 playerGamesPlayed - the total number of games played by the Player so far
-     * uint32 lastScore - the last game score
-     * uint32 bestScore - the highest Player's score ever
+     * uint32 playerLastScore - the last game score
+     * uint32 playerBestScore - the highest Player's score ever
      * uint32 mintedSnakeNfts - the number of Snake NFTs minted by the Player at all
      * uint32 mintedSuperPetNfts - the number of Super Pet NFTs minted by the Player at all
      */
@@ -85,8 +85,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         bool gameStartedFlag;
         bool superPetNftClaimFlag;
         uint32 playerGamesPlayed;
-        uint32 lastScore;
-        uint32 bestScore;
+        uint32 playerLastScore;
+        uint32 playerBestScore;
         uint32 mintedSnakeNfts;
         uint32 mintedSuperPetNfts;
     }
@@ -104,6 +104,9 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     //////////////////////
     // Global variables //
     //////////////////////
+
+    /// @dev The total number of players
+    uint64 private s_playersNumberTotal;
 
     /// @dev The total number of played games
     uint64 private s_gamesPlayedTotal;
@@ -165,7 +168,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     uint32 public constant GAME_BASE_FEE = 4;
 
     /// @dev Maximum number of Snake NFT tokens possible to mint in the Game by one Player.
-    uint32 public constant MAX_SNAKE_NFTS = 16;
+    uint32 public constant MAX_SNAKE_NFTS = 18;
 
     /// @dev Maximum number of Super Pet NFT tokens possible to mint in the Game by one Player.
     uint32 public constant MAX_SUPER_PET_NFTS = 3;
@@ -248,58 +251,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     ////////////////////
 
     /**
-     * @notice Function to automaticly operate game rounds, pick the best player to send him a prize.
-     * @dev Function to automaticly operate Game rounds by using Chainlink Automation time-based trigger
-     * mechanism. The time of execution is immutable and set in variable i_roundDuration.
-     * This is an external function called by Chainlink Automation node, when the fixed time has passed.
-     *
-     * Function execution:
-     * 1) Update global Game parameters: s_gamesPlayedTotal, s_highestScoreEver and s_bestPlayerEver.
-     * 2) Set `SnakeGame` contract balance transfer amounts.
-     * 3) Transfer prize to current best Player's account - 60% of current contract balance.
-     * 4) Transfer prize to best ever Player's account - 30% of current contract balance.
-     * 5) Transfer tip to developer's account - 10% of current contract balance.
-     * 6) Update current Game round counter - next Game round START.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
-     */
-    function finishRound() external nonReentrant {
-        // Update global Game parameters: s_gamesPlayedTotal, s_highestScoreEver, s_bestPlayerEver
-        // Update global number of played games parameter
-        s_gamesPlayedTotal += s_gameRounds[s_currentRound].gamesPlayed;
-        // Update global highest score ever and best Player's address parameters
-        if (s_gameRounds[s_currentRound].highestScore > s_highestScoreEver) {
-            s_highestScoreEver = s_gameRounds[s_currentRound].highestScore;
-            s_bestPlayerEver = s_gameRounds[s_currentRound].bestPlayer;
-        }
-        // Set `SnakeGame` contract balance transfer amounts
-        uint256 snakeGameBalance = address(this).balance;
-        uint256 latestBestPlayerPrize = (snakeGameBalance / 10) * 7; // 70%
-        uint256 bestPlayerEverPrize = (snakeGameBalance / 10) * 2; // 20%
-        uint256 developerTip = snakeGameBalance / 10; // 10%
-        // Current best Player prize transfer
-        address currentBestPlayer = s_gameRounds[s_currentRound].bestPlayer;
-        (bool successTransferCurrentBestPlayer, ) = currentBestPlayer.call{value: latestBestPlayerPrize}("");
-        if (!successTransferCurrentBestPlayer) {
-            revert SnakeGame__TransferFailed(currentBestPlayer);
-        }
-        // Best Player ever prize transfer
-        address bestPlayerEver = s_bestPlayerEver;
-        (bool successTransferBestPlayerEver, ) = bestPlayerEver.call{value: bestPlayerEverPrize}("");
-        if (!successTransferBestPlayerEver) {
-            revert SnakeGame__TransferFailed(bestPlayerEver);
-        }
-        // Developer tip transfer
-        address developer = DEV;
-        (bool successTransferDeveloperTip, ) = developer.call{value: developerTip}("");
-        if (!successTransferDeveloperTip) {
-            revert SnakeGame__TransferFailed(developer);
-        }
-        // Update current Game round counter
-        s_currentRound++;
-    }
-
-    /**
      * @notice Function to start the game.
      * @dev Function allows Player to pay for the game and start the game.
      * This is an external function called by the Player, using front-end application.
@@ -321,7 +272,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
             revert SnakeGame__GameAlreadyStarted();
         }
         uint256 snakeBalance = i_snakeToken.balanceOf(msg.sender);
-        uint256 gameFee = _gameFeeCalculation();
+        uint256 gameFee = gameFeeCalculation(msg.sender);
         // Check if Player has enough SNAKE tokens to pay game fee
         if (snakeBalance < gameFee) {
             revert SnakeGame__SnakeBalanceTooLow(snakeBalance);
@@ -345,9 +296,9 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      *
      * Function execution:
      * 1) Check if Player started the game before call gameOver function.
-     * 2) Update Player's game parameters: gameStartedFlag, playerGamesPlayed, lastScore and bestScore.
-     * 3) Update Game round parameters: gamesPlayed, bestPlayer and highestScore
-     * 4) Mint Snake NFT if the Player met required conditions.
+     * 2) Update Player's game parameters: gameStartedFlag, playerGamesPlayed, playerLastScore and playerBestScore.
+     * 3) Update Game round parameters: roundGamesPlayed, roundBestPlayer and roundHighestScore
+     * 4) Mint Snake NFT if the game score is at least `i_scoreRequired`.
      * 5) Call private function to check Super Pet NFT mint eligibility.
      * 6) Emit an event GameOver.
      *
@@ -358,30 +309,27 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         if (s_players[msg.sender].gameStartedFlag != true) {
             revert SnakeGame__GameNotStarted();
         }
-        // Update Player's game parameters: gameStartedFlag, playerGamesPlayed, lastScore and bestScore
+        // Update Player's game parameters: gameStartedFlag, playerGamesPlayed, playerLastScore and playerBestScore
         s_players[msg.sender].gameStartedFlag = false;
         s_players[msg.sender].playerGamesPlayed++;
-        s_players[msg.sender].lastScore = _score;
-        if (_score > s_players[msg.sender].bestScore) {
-            s_players[msg.sender].bestScore = _score;
+        s_players[msg.sender].playerLastScore = _score;
+        if (_score > s_players[msg.sender].playerBestScore) {
+            s_players[msg.sender].playerBestScore = _score;
         }
         // Update Game round parameters: roundGamesPlayed
-        s_gameRounds[s_currentRound].gamesPlayed++;
-        // IMPORTANT: Player can't save high score and mint Snake NFT, if game was played ONLY using airdropped SNAKE tokens
-        if (_score > s_gameRounds[s_currentRound].highestScore) {
-            if (s_players[msg.sender].snakeAirdropFlag == true) {
-                if (s_players[msg.sender].playerGamesPlayed > 3) {
-                    // Update Game round parameters: roundBestPlayer and highestScore
-                    s_gameRounds[s_currentRound].bestPlayer = msg.sender;
-                    s_gameRounds[s_currentRound].highestScore = _score;
-                    // Mint Snake NFT if the conditions are met: required score and under Snake NFT mint limit.
-                    _mintSnakeNft(msg.sender);
-                }
-            } else {
-                // Update Game round parameters: roundBestPlayer and highestScore
-                s_gameRounds[s_currentRound].bestPlayer = msg.sender;
-                s_gameRounds[s_currentRound].highestScore = _score;
-                // Mint Snake NFT if the conditions are met: required score and under Snake NFT mint limit.
+        s_gameRounds[s_currentRound].roundGamesPlayed++;
+        // IMPORTANT: Player can't save high score and mint Snake NFT, if game was played using airdropped SNAKE tokens
+        if (
+            (s_players[msg.sender].snakeAirdropFlag == false) ||
+            (s_players[msg.sender].snakeAirdropFlag == true && s_players[msg.sender].playerGamesPlayed > 3)
+        ) {
+            // Update Game round parameters: roundBestPlayer and roundHighestScore
+            if (_score > s_gameRounds[s_currentRound].roundHighestScore) {
+                s_gameRounds[s_currentRound].roundBestPlayer = msg.sender;
+                s_gameRounds[s_currentRound].roundHighestScore = _score;
+            }
+            // Mint Snake NFT if the conditions are met: required score and under Snake NFT mint limit.
+            if (_score >= i_scoreRequired) {
                 _mintSnakeNft(msg.sender);
             }
         }
@@ -389,6 +337,58 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         _checkSuperPetNft(msg.sender);
         //
         emit GameOver(msg.sender);
+    }
+
+    /**
+     * @notice Function to automaticly operate game rounds, pick the best player to send him a prize.
+     * @dev Function to automaticly operate Game rounds by using Chainlink Automation time-based trigger
+     * mechanism. The time of execution is immutable and set in variable i_roundDuration.
+     * This is an external function called by Chainlink Automation node, when the fixed time has passed.
+     *
+     * Function execution:
+     * 1) Update global Game parameters: s_gamesPlayedTotal, s_highestScoreEver and s_bestPlayerEver.
+     * 2) Set `SnakeGame` contract balance transfer amounts.
+     * 3) Transfer prize to current best Player's account - 60% of current contract balance.
+     * 4) Transfer prize to best ever Player's account - 30% of current contract balance.
+     * 5) Transfer tip to developer's account - 10% of current contract balance.
+     * 6) Update current Game round counter - next Game round START.
+     *
+     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
+     */
+    function finishRound() external nonReentrant {
+        // Update global Game parameters: s_gamesPlayedTotal, s_highestScoreEver, s_bestPlayerEver
+        // Update global number of played games parameter
+        s_gamesPlayedTotal += s_gameRounds[s_currentRound].roundGamesPlayed;
+        // Update global highest score ever and best Player's address parameters
+        if (s_gameRounds[s_currentRound].roundHighestScore > s_highestScoreEver) {
+            s_highestScoreEver = s_gameRounds[s_currentRound].roundHighestScore;
+            s_bestPlayerEver = s_gameRounds[s_currentRound].roundBestPlayer;
+        }
+        // Set `SnakeGame` contract balance transfer amounts
+        uint256 snakeGameBalance = address(this).balance;
+        uint256 latestBestPlayerPrize = (snakeGameBalance / 10) * 7; // 70%
+        uint256 bestPlayerEverPrize = (snakeGameBalance / 10) * 2; // 20%
+        uint256 developerTip = snakeGameBalance / 10; // 10%
+        // Current best Player prize transfer
+        address currentBestPlayer = s_gameRounds[s_currentRound].roundBestPlayer;
+        (bool successTransferCurrentBestPlayer, ) = currentBestPlayer.call{value: latestBestPlayerPrize}("");
+        if (!successTransferCurrentBestPlayer) {
+            revert SnakeGame__TransferFailed(currentBestPlayer);
+        }
+        // Best Player ever prize transfer
+        address bestPlayerEver = s_bestPlayerEver;
+        (bool successTransferBestPlayerEver, ) = bestPlayerEver.call{value: bestPlayerEverPrize}("");
+        if (!successTransferBestPlayerEver) {
+            revert SnakeGame__TransferFailed(bestPlayerEver);
+        }
+        // Developer tip transfer
+        address developer = DEV;
+        (bool successTransferDeveloperTip, ) = developer.call{value: developerTip}("");
+        if (!successTransferDeveloperTip) {
+            revert SnakeGame__TransferFailed(developer);
+        }
+        // Update current Game round counter
+        s_currentRound++;
     }
 
     /////////////////////
@@ -451,6 +451,38 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     ///////////////////
 
     /**
+     * @dev Function mints Snake NFT if Player reached required score and hasn't reached Snake NFT mint limit.
+     * Private function called ONLY by this `SnakeGame` contract.
+     * @param _player the Player's address
+     */
+    function _mintSnakeNft(address _player) private {
+        // Check if Player hasn't already mint maximum number of Snake NFTs
+        if (s_players[msg.sender].mintedSnakeNfts < MAX_SNAKE_NFTS) {
+            // Random choice of Snake NFT URI's array index
+            uint256 snakeNftUriIndex = _randomNumber(i_snakeNft.getNftUrisArrayLength());
+            // Update Player's game parameter: number of minted Snake NFTs
+            s_players[msg.sender].mintedSnakeNfts++;
+            // SafeMint Snake NFT with randomly chosen URI data
+            i_snakeNft.safeMint(_player, snakeNftUriIndex);
+            emit SnakeNftMinted(_player);
+        }
+    }
+
+    /**
+     * @dev Function checks the Player's Super Pet NFT mint eligibility.
+     * Private function called ONLY by this `SnakeGame` contract.
+     * @param _player the Player's address
+     */
+    function _checkSuperPetNft(address _player) private {
+        uint256 snakeNftBalance = i_snakeNft.balanceOf(_player);
+        // Check maximum Super Pet NFTs mint limit && required Snake NFT balance
+        if (s_players[_player].mintedSuperPetNfts < MAX_SUPER_PET_NFTS && snakeNftBalance >= i_snakeNftRequired) {
+            s_players[_player].superPetNftClaimFlag = true;
+            emit SuperPetNftUnlocked(_player);
+        }
+    }
+
+    /**
      * @notice Function to mint Super Pet NFT.
      * @dev Function allows Player to mint Super Pet NFT if he met the conditions. This is a payable function,
      * which allows Player to send currency with function call.
@@ -495,24 +527,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Function mints Snake NFT if Player reached required score and hasn't reached Snake NFT mint limit.
-     * Private function called ONLY by this `SnakeGame` contract.
-     * @param _player the Player's address
-     */
-    function _mintSnakeNft(address _player) private {
-        // Check if Player hasn't already mint maximum number of Snake NFTs
-        if (s_players[msg.sender].mintedSnakeNfts < MAX_SNAKE_NFTS) {
-            // Random choice of Snake NFT URI's array index
-            uint256 snakeNftUriIndex = _randomNumber(i_snakeNft.getNftUrisArrayLength());
-            // Update Player's game parameter: number of minted Snake NFTs
-            s_players[msg.sender].mintedSnakeNfts++;
-            // SafeMint Snake NFT with randomly chosen URI data
-            i_snakeNft.safeMint(_player, snakeNftUriIndex);
-            emit SnakeNftMinted(_player);
-        }
-    }
-
-    /**
      * @dev Function burns Snake NFT as a SuperPetNft mint fee.
      * Private function called ONLY by this `SnakeGame` contract.
      *
@@ -532,20 +546,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         // Burn Snake NFTs loop
         for (uint256 i; i < i_snakeNftRequired; i++) {
             i_snakeNft.burn(burnTokenIds[i]);
-        }
-    }
-
-    /**
-     * @dev Function checks the Player's Super Pet NFT mint eligibility.
-     * Private function called ONLY by this `SnakeGame` contract.
-     * @param _player the Player's address
-     */
-    function _checkSuperPetNft(address _player) private {
-        uint256 snakeNftBalance = i_snakeNft.balanceOf(_player);
-        // Check maximum Super Pet NFTs mint limit && required Snake NFT balance
-        if (s_players[_player].mintedSuperPetNfts < MAX_SUPER_PET_NFTS && snakeNftBalance >= i_snakeNftRequired) {
-            s_players[_player].superPetNftClaimFlag = true;
-            emit SuperPetNftUnlocked(_player);
         }
     }
 
@@ -576,17 +576,17 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         }
     }
 
-    ///////////////////////
-    // Private Functions //
-    ///////////////////////
+    //////////////////////
+    // Helper Functions //
+    //////////////////////
 
     /**
      * @dev Function calculates gameFee depending on the baseGameFee and Player's superPetNft balance.
-     * Private function called ONLY by this `SnakeGame` contract.
+     * Public function called both by the smart contract and by the Player, using front-end application.
      * @return gameFee the calculated fee in SNAKE tokens
      */
-    function _gameFeeCalculation() private view returns (uint256) {
-        uint256 superPetNftBalance = i_superPetNft.balanceOf(msg.sender);
+    function gameFeeCalculation(address _player) public view returns (uint256) {
+        uint256 superPetNftBalance = i_superPetNft.balanceOf(_player);
         if (superPetNftBalance <= 3) {
             return GAME_BASE_FEE - superPetNftBalance;
         } else return 1;
@@ -624,7 +624,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @dev Getter function to get the Game highest score ever.
      * @return Game highest score ever.
      */
-    function getGameHighestScoreEver() public view returns (uint64) {
+    function getHighestScoreEver() public view returns (uint64) {
         return s_highestScoreEver;
     }
 
@@ -637,10 +637,18 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Getter function to get the total number of Players.
+     * @return Total players number.
+     */
+    function getPlayersNumberTotal() public view returns (uint64) {
+        return s_playersNumberTotal;
+    }
+
+    /**
      * @dev Getter function to get the total number of games played by all Players.
      * @return Game total games played.
      */
-    function getGamePlayedTotal() public view returns (uint64) {
+    function getGamesPlayedTotal() public view returns (uint64) {
         return s_gamesPlayedTotal;
     }
 
@@ -653,7 +661,7 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Getter function to get GameRoundData parameters of given round.
+     * @dev Getter function to get PlayerData parameters.
      * @return Player's game parameters of given Player's address.
      */
     function getPlayerData(address _player) public view returns (PlayerData memory) {

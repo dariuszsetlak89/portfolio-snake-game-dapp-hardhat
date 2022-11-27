@@ -67,7 +67,7 @@ async function mintSuperPetNft() {
     console.log(`Super Pet NFT claim flag after: ${superPetNftClaimFlag.toString()}`);
     // Minted Super Pet NFTs amount parameter
     mintedSuperPetNfts = (await snakeGame.getPlayerData(PLAYER)).mintedSuperPetNfts;
-    console.log(`Minted Super Pet NFTs amount parameter: ${mintedSuperPetNfts.toString()}`);
+    console.log(`Minted Super Pet NFTs amount: ${mintedSuperPetNfts.toString()}`);
     // Snake NFT balance after
     snakeNftBalance = await snakeNft.balanceOf(PLAYER);
     console.log(`Snake NFT balance after: ${snakeNftBalance.toString()}`);

@@ -14,7 +14,7 @@ async function buySnake() {
 
     ///////////////////////////
     // Set snakeToBuy amount:
-    snakeToBuy = 100;
+    snakeToBuy = 555;
     ///////////////////////////
 
     // Get contract: SnakeGame
