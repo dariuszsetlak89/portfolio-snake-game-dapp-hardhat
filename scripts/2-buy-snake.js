@@ -17,9 +17,8 @@ async function buySnake() {
     snakeToBuy = 555;
     ///////////////////////////
 
-    // Get contract: SnakeGame
+    // Get contracts
     snakeGame = await ethers.getContract("SnakeGame", PLAYER);
-    // Get contract: SnakeToken
     snakeTokenAddress = await snakeGame.i_snakeToken();
     snakeToken = await ethers.getContractAt("Token", snakeTokenAddress, PLAYER);
 

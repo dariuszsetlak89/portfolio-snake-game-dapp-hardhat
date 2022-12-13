@@ -27,10 +27,6 @@ error Token__InvalidFunctionCall();
  * `Token` contract inherits `Ownable` contract from OpenZeppelin library, which sets `deployer` as contract `owner`.
  * This means, that ONLY owner will be authorized to call some sensitive contract functions like `mint` or `burn`,
  * which can be obtained by using `onlyOwner` modifier for these functions.
- *
- * Smart contract functions:
- * Override functions: mint, decimals
- * Other functions: receive, fallback
  */
 contract Token is ERC20, ERC20Burnable, Ownable {
     ///////////////////
@@ -40,8 +36,6 @@ contract Token is ERC20, ERC20Burnable, Ownable {
     /**
      * @dev `Token` contract constructor passes given parameters to OpenZeppelin library ERC20 constructor,
      * which use them to construct a standard ERC-20 token.
-     * @param name token name
-     * @param symbol token symbol
      */
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 

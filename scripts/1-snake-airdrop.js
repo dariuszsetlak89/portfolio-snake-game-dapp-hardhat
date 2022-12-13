@@ -12,9 +12,8 @@ async function snakeAirdrop() {
     const PLAYER = deployer;
     //////////////////////////////////////////
 
-    // Get contract: SnakeGame
+    // Get contracts
     snakeGame = await ethers.getContract("SnakeGame", PLAYER);
-    // Get contract: SnakeToken
     snakeTokenAddress = await snakeGame.i_snakeToken();
     snakeToken = await ethers.getContractAt("Token", snakeTokenAddress, PLAYER);
 
@@ -26,7 +25,6 @@ async function snakeAirdrop() {
     console.log(`Current PLAYER: ${PLAYER}`);
     // SNAKE airdrop flag
     snakeAirdropFlag = (await snakeGame.getPlayerData(PLAYER)).snakeAirdropFlag;
-    // console.log("SNAKE airdrop flag:", snakeAirdropFlag.toString());
 
     // SNAKE AIRDROP
     await snakeGame.snakeAirdrop();

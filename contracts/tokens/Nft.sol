@@ -14,7 +14,6 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 //////////////
 //  Errors  //
 //////////////
-error Nft__AlreadyInitialized();
 error Nft__ReceivedTransferReverted();
 error Nft__InvalidFunctionCall();
 
@@ -31,13 +30,6 @@ error Nft__InvalidFunctionCall();
  * `Nft` contract inherits `Ownable` contract from OpenZeppelin library, which sets `deployer` as contract `owner`.
  * This means, that ONLY owner will be authorized to call some sensitive contract functions like `mint` or `burn`,
  * which can be obtained by using `onlyOwner` modifier for these functions.
- *
- * Smart contract functions:
- * Init functions: _initializeContract
- * Main functions: safeMint
- * Getter functions: getNftUris, getNftUrisArrayLength, getInitialized, getLatestTokenId
- * Override functions: _burn, tokenURI, supportsInterface, _beforeTokenTransfer
- * Other functions: receive, fallback
  */
 contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Ownable {
     using Counters for Counters.Counter;
@@ -62,9 +54,6 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
     /**
      * @dev `Nft` contract constructor passes given parameters to OpenZeppelin library ERC721
      * constructor, which then use them to construct a standard ERC-721 token.
-     * @param name token name
-     * @param symbol token symbol
-     * @param uris token uris array
      */
     constructor(
         string memory name,
@@ -83,9 +72,6 @@ contract Nft is ERC721, ERC721URIStorage, ERC721Burnable, ERC721Enumerable, Owna
      * @param _uris token URI's array
      */
     function _initializeContract(string[] memory _uris) private {
-        // if (s_initialized) {
-        //     revert Nft__AlreadyInitialized();
-        // }
         s_uris = _uris;
         s_initialized = true;
     }

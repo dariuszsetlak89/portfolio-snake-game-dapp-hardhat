@@ -36,15 +36,12 @@ async function gameOver() {
     const GAME_SCORE = 1000;
     /////////////////////////
 
-    // Get contract: SnakeGame
+    // Get contracts
     snakeGame = await ethers.getContract("SnakeGame", PLAYER);
-    // Get contract: SnakeToken
     snakeTokenAddress = await snakeGame.i_snakeToken();
     snakeToken = await ethers.getContractAt("Token", snakeTokenAddress, PLAYER);
-    // Get contract: SnakeNft
     snakeNftAddress = await snakeGame.i_snakeNft();
     snakeNft = await ethers.getContractAt("Nft", snakeNftAddress, PLAYER);
-    // Get contract: SuperPetNft
     superPetNftAddress = await snakeGame.i_superPetNft();
     superPetNft = await ethers.getContractAt("Nft", superPetNftAddress, PLAYER);
 

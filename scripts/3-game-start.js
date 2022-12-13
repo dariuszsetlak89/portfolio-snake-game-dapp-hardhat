@@ -45,9 +45,7 @@ async function gameStart() {
     console.log(`SNAKE balance before: ${snakeBalance.toString()}`);
     // Game fee calculation
     gameBaseFee = await snakeGame.GAME_BASE_FEE();
-    // console.log(`Game base fee: ${gameBaseFee.toString()} SNAKE`);
     superPetNftBalance = await superPetNft.balanceOf(PLAYER);
-    // console.log(`Super Pet NFT balance: ${superPetNftBalance.toString()} SPET`);
     if (superPetNftBalance <= 3) {
         gameFee = gameBaseFee - superPetNftBalance;
     } else gameFee = 1;

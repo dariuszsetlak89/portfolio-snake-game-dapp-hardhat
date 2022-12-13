@@ -33,15 +33,12 @@ async function finishRound() {
     const CALLER = deployer;
     ///////////////////////////////////////////////////
 
-    // Get contract: SnakeGame
+    // Get contracts
     snakeGame = await ethers.getContract("SnakeGame", CALLER);
-    // Get contract: SnakeToken
     snakeTokenAddress = await snakeGame.i_snakeToken();
     snakeToken = await ethers.getContractAt("Token", snakeTokenAddress, CALLER);
-    // Get contract: SnakeNft
     snakeNftAddress = await snakeGame.i_snakeNft();
     snakeNft = await ethers.getContractAt("Nft", snakeNftAddress, CALLER);
-    // Get contract: SuperPetNft
     superPetNftAddress = await snakeGame.i_superPetNft();
     superPetNft = await ethers.getContractAt("Nft", superPetNftAddress, CALLER);
 

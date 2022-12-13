@@ -30,15 +30,7 @@ error SnakeGame__SnakeNftBalanceTooLow(uint256 snakeNftBalance, uint256 required
  * @title SnakeGame contract
  * @author Dariusz Setlak
  * @notice The main Snake Game Smart Contract
- * @dev The main smart contract of Snake Game Dapp containing the following functions:
- * Deployment Functions: createToken, createNft
- * Game functions: finishRound, gameStart, gameOver
- * Token functions: snakeAirdrop, buySnake
- * NFT functions: _mintSnakeNft, mintSuperPetNft, _burnSnakeNfts, _checkSuperPetNft, _mintSuperPetNft
- * Private functions: _gameFeeCalculation, _randomNumber
- * Getter functions: getGameRound, getHighestScoreEver, getGamesPlayedTotal, getGameRoundData, getPlayerData,
- * getBalance, getRandomNumber
- * Other functions: receive, fallback
+ * @dev The main smart contract of Snake Game Dapp.
  */
 contract SnakeGame is Ownable, ReentrancyGuard {
     //////////////
@@ -253,18 +245,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @notice Function to start the game.
      * @dev Function allows Player to pay for the game and start the game.
-     * This is an external function called by the Player, using front-end application.
-     *
-     * Function execution:
-     * 1) Check if Player hasn't already started the Game before.
-     * 2) Call private function _gameFeeCalculation to calculate Player's game fee.
-     * 3) Check if Player's SNAKE tokens balance is enough to pay gameFee, if not then transaction reverts.
-     * 4) Transfer gameFee in SNAKE tokens to `SnakeGame` contract.
-     * 5) Set Player's parameter gameStartedFlag to true.
-     * 6) Burn gameFee amount of SNAKE tokens from Player's account.
-     * 7) Emit an event GameStarted.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
      */
     function gameStart() external nonReentrant {
         // Check if Player hasn't already started the Game before
@@ -287,22 +267,11 @@ contract SnakeGame is Ownable, ReentrancyGuard {
     /**
      * @notice Function to end the current game.
      * @dev Function allows Player to pay for the Game and start the Game.
-     * This is an external function called by the Player, using front-end application.
      *
      * IMPORTANT: Player can't save high score if game was played using airdropped SNAKE tokens, even
      * if it was the highest score! That forces every Player to pay for a game at least once to be able
      * to win the highest score prize when the Game round ends. SNAKE airdrop token's purpose is to use
      * them to learn how to play, not to use them for competition in the game to win the prize.
-     *
-     * Function execution:
-     * 1) Check if Player started the game before call gameOver function.
-     * 2) Update Player's game parameters: gameStartedFlag, playerGamesPlayed, playerLastScore and playerBestScore.
-     * 3) Update Game round parameters: roundGamesPlayed, roundBestPlayer and roundHighestScore
-     * 4) Mint Snake NFT if the game score is at least `i_scoreRequired`.
-     * 5) Call private function to check Super Pet NFT mint eligibility.
-     * 6) Emit an event GameOver.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
      */
     function gameOver(uint32 _score) external nonReentrant {
         // Check if Player started the game before
@@ -335,7 +304,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
         }
         // Check Super Pet NFT mint eligibility
         _checkSuperPetNft(msg.sender);
-        //
         emit GameOver(msg.sender);
     }
 
@@ -343,20 +311,8 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @notice Function to automaticly operate game rounds, pick the best player to send him a prize.
      * @dev Function to automaticly operate Game rounds by using Chainlink Automation time-based trigger
      * mechanism. The time of execution is immutable and set in variable i_roundDuration.
-     * This is an external function called by Chainlink Automation node, when the fixed time has passed.
-     *
-     * Function execution:
-     * 1) Update global Game parameters: s_gamesPlayedTotal, s_highestScoreEver and s_bestPlayerEver.
-     * 2) Set `SnakeGame` contract balance transfer amounts.
-     * 3) Transfer prize to current best Player's account - 60% of current contract balance.
-     * 4) Transfer prize to best ever Player's account - 30% of current contract balance.
-     * 5) Transfer tip to developer's account - 10% of current contract balance.
-     * 6) Update current Game round counter - next Game round START.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
      */
     function finishRound() external nonReentrant {
-        // Update global Game parameters: s_gamesPlayedTotal, s_highestScoreEver, s_bestPlayerEver
         // Update global number of played games parameter
         s_gamesPlayedTotal += s_gameRounds[s_currentRound].roundGamesPlayed;
         // Update global highest score ever and best Player's address parameters
@@ -399,14 +355,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @notice Free SNAKE tokens airdrop for every new Player.
      * @dev Function allows every new Player claim for free SNAKE airdrop. Airdrop amount equals immutable
      * variable SNAKE_AIRDROP.
-     * This is an external function called by the Player, using front-end application.
-     *
-     * Function execution:
-     * 1) Check if Player already received SNAKE airdrop, if yes then transaction reverts.
-     * 2) Mint SNAKE tokens to Player's account.
-     * 3) Emit an event SnakeAirdropReceived.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
      */
     function snakeAirdrop() external nonReentrant {
         // Check if Player already received SNAKE airdrop.
@@ -424,15 +372,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @dev Function allows buy SNAKE tokens for native blockchain currency using fixed price. Exchange rate
      * is stored in an immutable variable i_snakeExchangeRate. This is a payable function, which allows Player
      * to send currency with function call.
-     * This is an external function called by the Player, using front-end application.
-     *
-     * Function execution:
-     * 1) Check if Player sent enough currency amount with function call, if not then transaction reverts.
-     * 2) Mint bought amount of SNAKE tokens to Player's account.
-     * 3) Emit an event SnakeTokensBought.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
-     *
      * @param _snakeAmount SNAKE tokens amount that Player wants to buy
      */
     function buySnake(uint256 _snakeAmount) public payable nonReentrant {
@@ -452,7 +391,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /**
      * @dev Function mints Snake NFT if Player reached required score and hasn't reached Snake NFT mint limit.
-     * Private function called ONLY by this `SnakeGame` contract.
      * @param _player the Player's address
      */
     function _mintSnakeNft(address _player) private {
@@ -470,7 +408,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /**
      * @dev Function checks the Player's Super Pet NFT mint eligibility.
-     * Private function called ONLY by this `SnakeGame` contract.
      * @param _player the Player's address
      */
     function _checkSuperPetNft(address _player) private {
@@ -486,21 +423,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @notice Function to mint Super Pet NFT.
      * @dev Function allows Player to mint Super Pet NFT if he met the conditions. This is a payable function,
      * which allows Player to send currency with function call.
-     * This is an external function called by the Player, using front-end application.
-     *
-     * Function execution:
-     * 1) Call private function to check Super Pet NFT mint eligibility.
-     * 2) Check if Player has unlocked Super Pet NFT for minting.
-     * 3) Check if Player has sent enough currency amount with function call, to pay Super Pet NFT mint fee.
-     * If not then transaction reverts.
-     * 4) Check if Player's Snake NFT balance is enough to pay Super Pet NFT mint fee (burn Snake NFTs).
-     * If not then transaction reverts.
-     * 5) Burn required amount of Snake NFTs as Super Pet NFT mint fee.
-     * 6) Mint Super Pet NFT with randomly chosen URI data
-     * 7) Call private function to check Super Pet NFT mint eligibility - in the case that before function call
-     * Player's Snake NFT balans was at least 10.
-     *
-     * Function is protected from reentrancy attack, by using nonReentrant modifier from OpenZeppelin library.
      */
     function mintSuperPetNft() external payable nonReentrant {
         // Check Super Pet NFT mint eligibility
@@ -528,13 +450,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /**
      * @dev Function burns Snake NFT as a SuperPetNft mint fee.
-     * Private function called ONLY by this `SnakeGame` contract.
-     *
-     * Function execution:
-     * 1) Create new burnTokenIds memory array.
-     * 2) Fill the array with Snake NFT IDs by calling tokenOfOwnerByIndex function in the FOR loop.
-     * 3) Burn i_snakeNftRequired amount of Snake NFTs in the FOR loop
-     *
      * @param _player the Player's address
      */
     function _burnSnakeNfts(address _player) private {
@@ -551,14 +466,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
 
     /**
      * @dev Function mints Super Pet NFT.
-     * Private function called ONLY by this `SnakeGame` contract.
-     *
-     * Function execution:
-     * 1) Random choice of Super Pet NFT URI's array index.
-     * 2) Update Player's game parameters: superPetNftClaimFlag and mintedSuperPetNfts.
-     * 3) Mint Super Pet NFT with randomly chosen URI data from Super Pet NFT URI datas array.
-     * 4) Emit an event SuperPetNftMinted.
-     *
      * @param _player the Player's address
      */
     function _mintSuperPetNft(address _player) private {
@@ -571,7 +478,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
             s_players[_player].mintedSuperPetNfts++;
             // SafeMint Super Pet NFT with randomly chosen URI data
             i_superPetNft.safeMint(_player, superNftUriIndex);
-            //
             emit SuperPetNftMinted(_player);
         }
     }
@@ -696,7 +602,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * @dev Function allows to receive funds sent to smart contract.
      */
     receive() external payable {
-        // console.log("Function `receive` invoked");
         emit TransferReceived(msg.value);
     }
 
@@ -706,7 +611,6 @@ contract SnakeGame is Ownable, ReentrancyGuard {
      * function calls.
      */
     fallback() external payable {
-        // console.log("Function `fallback` invoked");
         emit TransferReceived(msg.value);
     }
 }

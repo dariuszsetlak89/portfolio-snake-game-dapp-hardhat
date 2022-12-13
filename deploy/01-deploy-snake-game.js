@@ -12,18 +12,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     // Constructor parameters
 
     // Snake NFT URI data array
-    const snakeNftUris = [
-        "snakeNftUri0",
-        "snakeNftUri1",
-        "snakeNftUri2",
-        "snakeNftUri3",
-        "snakeNftUri4",
-        "snakeNftUri5",
-        "snakeNftUri6",
-        "snakeNftUri7",
-        "snakeNftUri8",
-        "snakeNftUri9",
-    ];
+    const snakeNftUris = ["snakeNftUri0", "snakeNftUri1", "snakeNftUri2", "snakeNftUri3", "snakeNftUri4"];
     // Super Pet NFT URI data array
     const superPetNftUris = [
         "superPetNftUri0",
@@ -31,11 +20,6 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         "superPetNftUri2",
         "superPetNftUri3",
         "superPetNftUri4",
-        "superPetNftUri5",
-        "superPetNftUri6",
-        "superPetNftUri7",
-        "superPetNftUri8",
-        "superPetNftUri9",
     ];
     // Game immutable parameters
     const scoreRequired = 100;

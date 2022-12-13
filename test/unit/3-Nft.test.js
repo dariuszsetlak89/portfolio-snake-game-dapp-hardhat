@@ -13,25 +13,12 @@ const { developmentChains } = require("../../helper-hardhat-config");
               // Get accounts: deployer, player
               deployer = (await getNamedAccounts()).deployer;
               player1 = (await getNamedAccounts()).player1;
-              // Get contract: SnakeGame
+              // Get contracts
               snakeGame = await ethers.getContract("SnakeGame", deployer);
-              // Get contract: SnakeNft
               snakeNftAddress = await snakeGame.i_snakeNft();
               snakeNft = await ethers.getContractAt("Nft", snakeNftAddress);
-              // Get contract: SuperPetNft
               superPetNftAddress = await snakeGame.i_superPetNft();
               superPetNft = await ethers.getContractAt("Nft", superPetNftAddress);
-          });
-
-          describe("constructor", async () => {
-              // Test for private function `_initializeContract. Works only if function visibility
-              // is temporarly set to 'public'.
-              //   it("should revert if `s_initialized` is `true`", async () => {
-              //       const initialized = await snakeNft.getInitialized();
-              //       console.log("initialized:", initialized.toString());
-              //       const initialize = snakeNft._initializeContract([""]);
-              //       await expect(initialize).to.be.revertedWith("Nft__AlreadyInitialized");
-              //   });
           });
 
           describe("getInitialized", async () => {
